@@ -19,6 +19,8 @@
   <link rel="stylesheet" href="/css/calendar.css" />
   <link rel="stylesheet" href="/css/event.css" />
   <link rel="stylesheet" href="/css/settings.css" />
+  <link rel="stylesheet" href="/css/calendars.css" />
+  <link rel="stylesheet" href="/css/week-list.css" />
 </head>
 <body>
   <header class="topbar">
@@ -48,12 +50,22 @@
               <button type="submit">Add course</button>
             </div>
           </form>
+          <hr />
+          <h3>Calendars</h3>
+          <p class="status">The tabs under the top bar. Every event is on one of them.</p>
+          <ul id="settings-calendars" class="settings-calendars"></ul>
           <p id="settings-status" class="error hidden"></p>
           <p class="status app-version">Agenda v__APP_VERSION__</p>
         </div>
       </div>
     </div>
   </header>
+
+  <!-- The calendars: All, then School, Personal, Work... (js/views/calendar-tabs.js). -->
+  <div class="calendar-bar">
+    <div id="calendar-tabs" class="calendar-tabs" role="group" aria-label="Calendars"></div>
+    <p id="calendar-status" class="error hidden" aria-live="polite"></p>
+  </div>
 
   <nav class="tabs" aria-label="Views">
     <a id="tab-upcoming" class="tab" href="/upcoming">Upcoming</a>
@@ -70,6 +82,7 @@
         <h2>Next 14 days</h2>
         <a id="upcoming-add" class="btn add-link" href="/event/new">+ Add an event</a>
       </div>
+      <div id="upcoming-week-list" class="week-list-box"></div>
       <p id="upcoming-status" class="status" aria-live="polite"></p>
       <div id="upcoming-list" class="day-list"></div>
     </section>
@@ -84,6 +97,7 @@
           <a id="week-later" class="btn btn-ghost" href="/week">Later →</a>
         </div>
       </div>
+      <div id="week-week-list" class="week-list-box"></div>
       <p id="week-status" class="status hidden" aria-live="polite"></p>
       <div id="week-grid" class="week-grid"></div>
     </section>
@@ -120,8 +134,16 @@
             <datalist id="course-codes"></datalist>
           </div>
         </div>
-        <label for="field-date">Date</label>
-        <input id="field-date" type="date" required />
+        <div class="field-pair">
+          <div>
+            <label for="field-date">Date</label>
+            <input id="field-date" type="date" required />
+          </div>
+          <div>
+            <label for="field-calendar">Calendar</label>
+            <select id="field-calendar"></select>
+          </div>
+        </div>
         <div class="field-pair">
           <div>
             <label id="label-start" for="field-start">Start time</label>

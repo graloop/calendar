@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .database import Base, add_missing_columns, engine
-from .routers import courses, events
+from .routers import calendars, courses, events, todos
 from .version import VERSION
 
 logging.basicConfig(level=logging.INFO)  # What the app says goes to `docker logs`.
@@ -25,6 +25,7 @@ async def lifespan(_app: FastAPI):
     # create_all only creates what's missing, so existing data is left alone.
     Base.metadata.create_all(bind=engine)
     add_missing_columns()
+    calendars.set_up_calendars()  # School, Personal, Work on a new database
     yield
 
 
@@ -38,6 +39,8 @@ app = FastAPI(
 
 app.include_router(courses.router)
 app.include_router(events.router)
+app.include_router(calendars.router)
+app.include_router(todos.router)
 
 
 @app.get("/api/health")

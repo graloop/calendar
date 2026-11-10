@@ -3,6 +3,7 @@
 // clicks, never a browser pop-up.
 
 import { api, json } from "../core/api.js";
+import { defaultCalendarId, fillCalendarSelect, loadCalendars, onCalendarsChange } from "../core/calendars.js";
 import { getCourses, loadCourses, onCoursesChange } from "../core/courses.js";
 import { formatDay, isValidDay, todayISO } from "../core/dates.js";
 import { t } from "../core/i18n.js";
@@ -27,6 +28,8 @@ function fillCourseCodes() {
     .replaceChildren(...getCourses().map((c) => el("option", { value: c.code }, c.name ?? c.code)));
 }
 onCoursesChange(fillCourseCodes);
+// Keeps the calendar picked when the list is refreshed behind the form.
+onCalendarsChange(() => fillCalendarSelect(field("calendar"), field("calendar").value));
 
 // A deadline has a due time and no end, and a "done" box.
 function showTypeFields() {
@@ -55,6 +58,7 @@ function fill(event) {
   field("location").value = event.location ?? "";
   field("details").value = event.details ?? "";
   field("source").value = event.source_link ?? "";
+  fillCalendarSelect(field("calendar"), event.calendar_id ?? defaultCalendarId());
   showTypeFields();
 }
 
@@ -90,7 +94,7 @@ export async function showEvent(id, date = null) {
 async function remove(series) {
   try {
     await api(`/api/events/${current.id}${series ? "?series=1" : ""}`, { method: "DELETE" });
-    await loadCourses(); // Their event counts changed.
+    await Promise.all([loadCourses(), loadCalendars()]); // Their event counts changed.
     go(returnTo);
   } catch (err) {
     showStatus(status, err.message, true);
@@ -116,12 +120,13 @@ form.addEventListener("submit", async (e) => {
     location: field("location").value,
     details: field("details").value,
     source_link: field("source").value,
+    calendar_id: Number(field("calendar").value) || null,
   };
   try {
     const saved = current
       ? await api(`/api/events/${current.id}`, json("PATCH", body))
       : await api("/api/events", json("POST", body));
-    await loadCourses(); // A new course code makes a new course.
+    await Promise.all([loadCourses(), loadCalendars()]); // A new course code makes a new course; counts change.
     go(returnTo);
     showStatus(
       document.getElementById("app-error"),

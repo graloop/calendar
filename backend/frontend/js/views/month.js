@@ -2,6 +2,7 @@
 // months around it greyed out to fill the first and last weeks.
 
 import { api } from "../core/api.js";
+import { calendarQuery } from "../core/calendars.js";
 import { addDays, addMonths, formatMonth, mondayOf, monthOf, todayISO, weekdayNames } from "../core/dates.js";
 import { byDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
@@ -27,7 +28,7 @@ export async function showMonth(month) {
   document.getElementById("tab-month").href = `/month/${month}`;
 
   showStatus(status, t("Loading..."));
-  const days = byDay(await api(`/api/events?from=${start}&to=${end}`));
+  const days = byDay(await api(`/api/events?from=${start}&to=${end}${calendarQuery()}`));
   hideStatus(status);
   const cells = weekdayNames().map((name) => el("div", { class: "grid-head", "aria-hidden": "true" }, name));
   for (let iso = start; iso <= end; iso = addDays(iso, 1)) {
