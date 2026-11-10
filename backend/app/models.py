@@ -127,3 +127,16 @@ class Todo(Base):
     @property
     def calendar_name(self) -> str:
         return self.calendar.name
+
+
+class ImportChange(Base):
+    """An event an import changed, with its values from before, so undoing the
+    import can put them back. event_id is a plain number, not a link: the event
+    may have been deleted by hand since, and undo then just skips it."""
+
+    __tablename__ = "import_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    import_id: Mapped[int] = mapped_column(ForeignKey("imports.id"), index=True)
+    event_id: Mapped[int] = mapped_column(Integer)
+    before: Mapped[dict] = mapped_column(JSON)

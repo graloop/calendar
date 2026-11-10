@@ -1,0 +1,102 @@
+/* The Import tab: how to write the lines, the text box, the preview table
+   (a changed event in blue, old → new) and the result with its Undo. Also the
+   "Past imports" list in the settings gear. Colours only from base.css. */
+
+#import-view { display: flex; flex-direction: column; gap: 16px; }
+#import-view .view-head { margin-bottom: 0; }
+
+.import-help h3, .import-preview h3 { margin: 0 0 8px; font-size: 1rem; }
+.import-help p { margin: 8px 0; font-size: 0.9rem; }
+.import-help code, .import-line {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
+.import-help pre {
+  margin: 4px 0;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  overflow-x: auto;
+}
+.import-format { font-weight: 600; }
+.import-fields { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 8px 0; font-size: 0.9rem; }
+.import-fields dt { padding-top: 1px; }
+.import-fields dd { margin: 0; }
+
+#import-text {
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+}
+.import-controls { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.import-source { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px; max-width: 360px; }
+
+/* --- The preview table --- */
+.import-table-wrap { overflow-x: auto; margin: 8px 0 12px; }
+.import-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.import-table th, .import-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.import-table th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+.import-table .nowrap { white-space: nowrap; }
+.import-details { color: var(--muted); overflow-wrap: anywhere; min-width: 160px; }
+
+.import-status {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-new { color: var(--link); border-color: var(--accent); }
+.status-already { color: var(--muted); }
+.status-changed { color: var(--changed-border); border-color: var(--changed-border); background: var(--changed); }
+.status-error { color: var(--danger); border-color: var(--danger-border); background: var(--danger-soft); }
+
+.row-already td { color: var(--muted); }
+.row-changed td { background: var(--changed); }
+.row-changed td:first-child { box-shadow: inset 3px 0 0 var(--changed-border); }
+.row-error td { background: var(--danger-soft); }
+.changed-cell .change-before { color: var(--muted); text-decoration: line-through; }
+.changed-cell strong { color: var(--changed-border); }
+.import-line { display: block; margin-bottom: 4px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.import-fix { color: var(--danger); }
+
+.import-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+
+.import-result { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.import-result .status { font-size: 0.95rem; }
+
+/* --- Past imports, in the settings gear --- */
+.settings-imports { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.settings-import {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.import-when { font-size: 0.9rem; font-weight: 600; }
+.import-undo { padding: 6px 10px; min-height: 0; font-size: 0.85rem; }
+
+@media (max-width: 600px) {
+  .import-fields { grid-template-columns: 1fr; gap: 2px; }
+  .import-fields dd { margin-bottom: 6px; }
+  .import-source { max-width: none; }
+  .import-controls button, .import-actions button { flex: 1; }
+}

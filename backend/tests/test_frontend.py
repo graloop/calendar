@@ -79,6 +79,15 @@ def test_every_server_message_has_french():
     assert not missing
 
 
+def test_every_import_line_message_has_french():
+    # The preview shows these next to a line, translated by their template.
+    source = "\n".join(p.read_text(encoding="utf-8") for p in (ROOT / "app/importing").glob("*.py"))
+    templates = re.findall(r'LineError\(\s*"((?:[^"\\]|\\.)*)"', source)
+    assert len(templates) > 15
+    missing = {m for m in templates if not french_has(m)}
+    assert not missing
+
+
 def test_index_is_served_with_versioned_assets(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -89,7 +98,7 @@ def test_index_is_served_with_versioned_assets(client):
 
 def test_every_page_address_opens_the_same_page(client):
     home = client.get("/").text
-    for path in ("/upcoming", "/week", "/week/2026-11-23", "/month", "/month/2026-11", "/event/5", "/event/new"):
+    for path in ("/upcoming", "/week", "/week/2026-11-23", "/month", "/month/2026-11", "/event/5", "/event/new", "/import"):
         assert client.get(path).text == home, path
 
 

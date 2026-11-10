@@ -233,3 +233,37 @@ class CarryOver(BaseModel):
     calendar_id: int | None = None  # none: every calendar
 
     _week = field_validator("week")(check_monday)
+
+
+# --- Import (stage 2) ---
+
+ImportSource = Literal["moodle", "email", "other", "manual"]
+
+
+class ImportDraft(BaseModel):
+    text: str = Field(default="", max_length=200_000)
+
+
+class ImportRequest(BaseModel):
+    text: str = Field(max_length=200_000)
+    # "auto": guessed from the lines' source column (a Moodle address, "Email: ...").
+    source: ImportSource | Literal["auto"] = "auto"
+    # The calendar new events go in (the tab chosen on the page). None: the first one.
+    calendar_id: int | None = None
+
+
+class ImportApply(ImportRequest):
+    hash: str = Field(max_length=128)
+
+
+class ImportOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: dt.datetime
+    source: str
+    line_count: int
+    added: int
+    changed: int
+    skipped: int
+    undone_at: dt.datetime | None

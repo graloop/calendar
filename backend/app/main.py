@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .database import Base, add_missing_columns, engine
-from .routers import calendars, courses, events, todos
+from .routers import calendars, courses, events, imports, todos
 from .version import VERSION
 
 logging.basicConfig(level=logging.INFO)  # What the app says goes to `docker logs`.
@@ -41,6 +41,9 @@ app.include_router(courses.router)
 app.include_router(events.router)
 app.include_router(calendars.router)
 app.include_router(todos.router)
+
+
+app.include_router(imports.router)
 
 
 @app.get("/api/health")
@@ -71,6 +74,7 @@ _LOCAL_ASSET = re.compile(r'(src|href)="/([\w/.-]+\.(?:js|css))"')
 @app.get("/month", include_in_schema=False)
 @app.get("/month/{month}", include_in_schema=False)
 @app.get("/event/{event_id}", include_in_schema=False)
+@app.get("/import", include_in_schema=False)
 def index():
     """index.html with ?v=<mtime> on the files it links: any change gives a new
     URL, so no browser can keep running a stale copy."""

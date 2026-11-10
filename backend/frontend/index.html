@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="/css/settings.css" />
   <link rel="stylesheet" href="/css/calendars.css" />
   <link rel="stylesheet" href="/css/week-list.css" />
+  <link rel="stylesheet" href="/css/import.css" />
 </head>
 <body>
   <header class="topbar">
@@ -55,6 +56,11 @@
           <p class="status">The tabs under the top bar. Every event is on one of them.</p>
           <ul id="settings-calendars" class="settings-calendars"></ul>
           <p id="settings-status" class="error hidden"></p>
+          <hr />
+          <h3>Past imports</h3>
+          <p class="status">Undo removes the events an import added and puts back the ones it changed.</p>
+          <ul id="settings-imports" class="settings-imports"></ul>
+          <p id="settings-imports-status" class="error hidden"></p>
           <p class="status app-version">Agenda v__APP_VERSION__</p>
         </div>
       </div>
@@ -71,6 +77,7 @@
     <a id="tab-upcoming" class="tab" href="/upcoming">Upcoming</a>
     <a id="tab-week" class="tab" href="/week">Week</a>
     <a id="tab-month" class="tab" href="/month">Month</a>
+    <a id="tab-import" class="tab" href="/import">Import</a>
   </nav>
 
   <main>
@@ -174,6 +181,67 @@
           <button id="event-delete-series" type="button" class="btn-ghost danger-ghost hidden">Delete the whole series</button>
         </div>
       </form>
+    </section>
+
+    <!-- Import: event lines in, a preview, then Add to calendar (js/views/import.js). -->
+    <section id="import-view" class="view hidden">
+      <div class="view-head">
+        <h2>Import events</h2>
+      </div>
+      <!-- How to write the lines, filled in by import.js so its examples are never translated. -->
+      <div id="import-help" class="panel import-help"></div>
+      <form id="import-form" class="panel import-form">
+        <label for="import-text">Lines to import (one event per line)</label>
+        <textarea id="import-text" rows="10" spellcheck="false" autocomplete="off"></textarea>
+        <p id="import-draft-status" class="status" aria-live="polite"></p>
+        <div class="import-controls">
+          <div class="import-source">
+            <label for="import-source">Where the lines come from</label>
+            <select id="import-source">
+              <option value="auto">Guess from the source column</option>
+              <option value="moodle">Moodle</option>
+              <option value="email">Email</option>
+              <option value="other">Other</option>
+              <option value="manual">Typed by hand</option>
+            </select>
+          </div>
+          <div class="import-source">
+            <label for="import-calendar">Put new events in</label>
+            <select id="import-calendar"></select>
+          </div>
+          <button id="import-preview-btn" type="submit">Preview</button>
+        </div>
+      </form>
+      <section id="import-preview" class="panel import-preview hidden" aria-labelledby="import-preview-title">
+        <h3 id="import-preview-title">What the import will do</h3>
+        <p id="import-summary" class="status" aria-live="polite"></p>
+        <div class="import-table-wrap">
+          <table class="import-table">
+            <thead>
+              <tr>
+                <th scope="col">Line</th>
+                <th scope="col">Status</th>
+                <th scope="col">Date</th>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Course</th>
+                <th scope="col">Title</th>
+                <th scope="col">Details and place</th>
+              </tr>
+            </thead>
+            <tbody id="import-rows"></tbody>
+          </table>
+        </div>
+        <div class="import-actions">
+          <button id="import-apply" type="button" disabled>Add to calendar</button>
+          <p id="import-apply-hint" class="status"></p>
+        </div>
+      </section>
+      <div id="import-result" class="panel import-result hidden">
+        <p id="import-result-text" class="status ok" aria-live="polite"></p>
+        <button id="import-undo" type="button" class="btn-ghost">Undo this import</button>
+      </div>
+      <p id="import-status" class="error hidden" aria-live="polite"></p>
     </section>
   </main>
 
