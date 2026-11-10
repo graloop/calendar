@@ -1,0 +1,19 @@
+/* The event screen: the form to add an event or change, move or delete one. */
+
+.back-btn { margin-bottom: 12px; }
+.event-form { max-width: 640px; }
+.event-form h2 { margin-bottom: 4px; }
+
+.field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field-pair > div { display: flex; flex-direction: column; gap: 8px; }
+
+.check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 0.95rem; }
+
+.event-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.danger-ghost { color: var(--danger); border-color: var(--danger-border); }
+.danger-ghost:hover { background: var(--danger-soft); }
+
+@media (max-width: 600px) {
+  .field-pair { grid-template-columns: 1fr; gap: 0; }
+  .event-actions button { flex: 1; }
+}
