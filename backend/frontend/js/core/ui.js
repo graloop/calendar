@@ -45,9 +45,8 @@ export function el(tag, attributes = {}, ...children) {
 // extension. The first click turns the button red and asks again; after 4
 // seconds without a second click it goes back to normal.
 export function twoClickButton(button, { label, confirmLabel, onConfirm }) {
-  let timer = null;
   const reset = () => {
-    clearTimeout(timer);
+    clearTimeout(button.confirmTimer);
     button.classList.remove("confirming");
     button.textContent = label;
   };
@@ -56,7 +55,7 @@ export function twoClickButton(button, { label, confirmLabel, onConfirm }) {
     if (!button.classList.contains("confirming")) {
       button.classList.add("confirming");
       button.textContent = confirmLabel;
-      timer = setTimeout(reset, 4000);
+      button.confirmTimer = setTimeout(reset, 4000);
       return;
     }
     reset();

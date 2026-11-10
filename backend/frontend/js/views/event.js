@@ -67,7 +67,12 @@ export async function showEvent(id, date = null) {
   showView("event");
   hideStatus(status);
   document.getElementById("event-back").href = returnTo;
-  current = id ? await api(`/api/events/${id}`) : null;
+  // Forget the last event first: if this one can't be loaded (deleted
+  // meanwhile), Save and Delete must not act on the one shown before.
+  current = null;
+  form.classList.add("hidden");
+  if (id) current = await api(`/api/events/${id}`);
+  form.classList.remove("hidden");
   const heading = current ? t("Edit event") : t("New event");
   document.getElementById("event-heading").textContent = heading;
   document.title = `${current ? current.title : heading} · Agenda`;
@@ -88,7 +93,9 @@ export async function showEvent(id, date = null) {
       onConfirm: () => remove(true),
     });
   }
-  field("title").focus();
+  // Only a new event starts in the title: opening one to read it on the phone
+  // shouldn't pop up the keyboard.
+  if (!current) field("title").focus();
 }
 
 async function remove(series) {

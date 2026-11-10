@@ -97,6 +97,7 @@ export const FR = {
     "Un code de cours est fait de lettres et de chiffres, comme ABC123.",
   "An end time needs a start time.": "Une heure de fin demande une heure de début.",
   "A deadline has only a due time, no end time.": "Une remise n'a qu'une heure limite, pas d'heure de fin.",
+  "Write a local time like 13:30.": "Écrivez une heure locale comme 13:30.",
   "The end time must be after the start time.": "L'heure de fin doit être après l'heure de début.",
   "The title, type and date can't be empty.": "Le titre, le type et la date ne peuvent pas être vides.",
 

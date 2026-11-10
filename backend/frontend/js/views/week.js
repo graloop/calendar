@@ -7,6 +7,7 @@ import { calendarQuery } from "../core/calendars.js";
 import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
 import { addButton, byDay, eventLink, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
+import { screenNumber } from "../core/router.js";
 import { el, hideStatus, showStatus, showView } from "../core/ui.js";
 import { showWeekList } from "./week-list.js";
 
@@ -40,8 +41,15 @@ export async function showWeek(day) {
 
   showWeekList(document.getElementById("week-week-list"), monday);
   showStatus(status, t("Loading..."));
-  const days = byDay(await api(`/api/events?from=${monday}&to=${sunday}${calendarQuery()}`));
-  hideStatus(status);
+  const asked = screenNumber();
+  let events;
+  try {
+    events = await api(`/api/events?from=${monday}&to=${sunday}${calendarQuery()}`);
+  } finally {
+    hideStatus(status);
+  }
+  if (asked !== screenNumber()) return; // Another screen was asked for meanwhile.
+  const days = byDay(events);
   const cells = [0, 1, 2, 3, 4, 5, 6]
     .map((i) => addDays(monday, i))
     .map((iso) => dayCell(iso, days[iso] ?? [], { today }));

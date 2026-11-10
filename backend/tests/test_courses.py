@@ -54,3 +54,9 @@ def test_removing_a_course_with_events_has_to_be_asked_for(client):
     assert client.delete(f"/api/courses/{course_id}?delete_events=true").status_code == 204
     assert client.get(f"/api/events/{event['id']}").status_code == 404
     assert client.get(f"/api/events/{kept['id']}").status_code == 200
+
+
+def test_a_dash_is_not_a_course_code(client):
+    response = client.post("/api/courses", json={"code": "-"})
+    assert response.status_code == 422
+    assert "like ABC123" in response.json()["detail"][0]["msg"]

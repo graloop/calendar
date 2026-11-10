@@ -148,3 +148,28 @@ def test_delete_a_whole_series(client):
     other = add_event(client, title="Not in the series")
     assert client.delete(f"/api/events/{events[0]['id']}?series=1").status_code == 204
     assert [e["id"] for e in client.get("/api/events").json()] == [other["id"]]
+
+
+def test_a_title_of_only_spaces_is_refused_on_change_too(client):
+    event = add_event(client)
+    assert client.patch(f"/api/events/{event['id']}", json={"title": "   "}).status_code == 422
+    assert client.get(f"/api/events/{event['id']}").json()["title"] == "Lab 3"
+
+
+def test_times_with_a_timezone_are_refused(client):
+    for start in ("13:30Z", "13:30+05:00"):
+        response = client.post("/api/events", json={"title": "x", "date": "2026-11-24", "start_time": start})
+        assert response.status_code == 422, start
+
+
+def test_search_wildcards_are_plain_characters(client):
+    add_event(client, title="Quiz 100%")
+    add_event(client, title="Lab 4")
+    assert [e["title"] for e in client.get("/api/events?q=%25").json()] == ["Quiz 100%"]
+    assert client.get("/api/events?q=_").json() == []
+
+
+def test_course_filter_reads_codes_like_the_form(client):
+    add_event(client)
+    assert len(client.get("/api/events?course=abc 123").json()) == 1
+    assert client.get("/api/events?course=a;b").json() == []

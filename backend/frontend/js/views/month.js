@@ -6,6 +6,7 @@ import { calendarQuery } from "../core/calendars.js";
 import { addDays, addMonths, formatMonth, mondayOf, monthOf, todayISO, weekdayNames } from "../core/dates.js";
 import { byDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
+import { screenNumber } from "../core/router.js";
 import { el, hideStatus, showStatus, showView } from "../core/ui.js";
 import { dayCell } from "./week.js";
 
@@ -28,8 +29,15 @@ export async function showMonth(month) {
   document.getElementById("tab-month").href = `/month/${month}`;
 
   showStatus(status, t("Loading..."));
-  const days = byDay(await api(`/api/events?from=${start}&to=${end}${calendarQuery()}`));
-  hideStatus(status);
+  const asked = screenNumber();
+  let events;
+  try {
+    events = await api(`/api/events?from=${start}&to=${end}${calendarQuery()}`);
+  } finally {
+    hideStatus(status);
+  }
+  if (asked !== screenNumber()) return; // Another screen was asked for meanwhile.
+  const days = byDay(events);
   const cells = weekdayNames().map((name) => el("div", { class: "grid-head", "aria-hidden": "true" }, name));
   for (let iso = start; iso <= end; iso = addDays(iso, 1)) {
     const extraClass = monthOf(iso) === month ? "" : "other-month";

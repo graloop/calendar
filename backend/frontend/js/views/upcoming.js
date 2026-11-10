@@ -7,6 +7,7 @@ import { calendarQuery } from "../core/calendars.js";
 import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
 import { byDay, eventLink, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
+import { screenNumber } from "../core/router.js";
 import { el, hideStatus, showStatus, showView } from "../core/ui.js";
 import { showWeekList } from "./week-list.js";
 
@@ -55,11 +56,17 @@ export async function showUpcoming() {
   showWeekList(document.getElementById("upcoming-week-list"), mondayOf(today));
   showStatus(status, t("Loading..."));
   const only = calendarQuery(); // "" in "All", "&calendar=2" otherwise
-  const [events, overdue] = await Promise.all([
-    api(`/api/events?from=${today}&to=${addDays(today, DAYS - 1)}${only}`),
-    api(`/api/events?type=deadline&done=false&to=${addDays(today, -1)}${only}`),
-  ]);
-  hideStatus(status);
+  const asked = screenNumber();
+  let events, overdue;
+  try {
+    [events, overdue] = await Promise.all([
+      api(`/api/events?from=${today}&to=${addDays(today, DAYS - 1)}${only}`),
+      api(`/api/events?type=deadline&done=false&to=${addDays(today, -1)}${only}`),
+    ]);
+  } finally {
+    hideStatus(status);
+  }
+  if (asked !== screenNumber()) return; // Another screen was asked for meanwhile.
   const days = byDay(events);
   const groups = Object.keys(days)
     .sort()

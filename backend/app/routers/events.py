@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..database import fold, get_db
 from ..models import Course, Event
-from ..schemas import EventCreate, EventFields, EventOut, EventType
+from ..schemas import EventCreate, EventFields, EventOut, EventType, tidy_code
 from . import calendars, courses
 
 router = APIRouter(prefix="/api/events", tags=["events"])
@@ -69,7 +69,11 @@ def list_events(
     if to:
         query = query.where(Event.date <= to)
     if course:
-        query = query.where(Course.code == course.strip().upper())
+        try:
+            code = tidy_code(course)  # "abc 123" finds ABC123, as the event form writes it
+        except ValueError:
+            code = None  # Not a possible code: nothing matches.
+        query = query.where(Course.code == (code or ""))
     if calendar is not None:
         query = query.where(Event.calendar_id == calendar)
     if type:
@@ -77,13 +81,15 @@ def list_events(
     if done is not None:
         query = query.where(Event.done.is_(done))
     for word in fold(q).split():
-        pattern = f"%{word}%"
+        # % and _ are wildcards in LIKE: escaped, so searching "%" finds a "%".
+        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
         query = query.where(
             or_(
-                func.fold(Event.title).like(pattern),
-                func.fold(Event.details).like(pattern),
-                func.fold(Event.location).like(pattern),
-                func.fold(Course.code).like(pattern),
+                func.fold(Event.title).like(pattern, escape="\\"),
+                func.fold(Event.details).like(pattern, escape="\\"),
+                func.fold(Event.location).like(pattern, escape="\\"),
+                func.fold(Course.code).like(pattern, escape="\\"),
             )
         )
     # All-day events (no start time) come first in a day: SQLite puts NULL first.

@@ -37,9 +37,8 @@ export function locale() {
 
 // t("{n} events", { n: 3 }) -> "3 événements"
 export function t(text, params = {}) {
-  let out = (lang === "fr" && FR[text]) || text;
-  for (const [key, value] of Object.entries(params)) out = out.replaceAll(`{${key}}`, value);
-  return out;
+  const out = (lang === "fr" && FR[text]) || text;
+  return out.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
 }
 
 // French counts 0 and 1 as singular ("0 reçu"), English only 1.

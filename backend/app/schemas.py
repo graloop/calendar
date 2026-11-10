@@ -39,7 +39,8 @@ def tidy_text(value):
 
 
 class CourseCreate(BaseModel):
-    code: str = Field(max_length=40)
+    # str | None: "-" or "" tidy to None, and _required below then says what a code looks like.
+    code: str | None = Field(max_length=40)
     name: str | None = Field(default=None, max_length=200)
     color: Color | None = None
 
@@ -92,7 +93,8 @@ class EventFields(BaseModel):
     @field_validator("title", mode="before")
     @classmethod
     def _tidy_title(cls, value):
-        return " ".join(value.split()) if isinstance(value, str) else value
+        # A title of only spaces becomes no title, so "can't be empty" catches it.
+        return (" ".join(value.split()) or None) if isinstance(value, str) else value
 
     @field_validator("start_time", "end_time", mode="before")
     @classmethod
@@ -102,6 +104,10 @@ class EventFields(BaseModel):
     @field_validator("start_time", "end_time")
     @classmethod
     def _whole_minutes(cls, value: dt.time | None) -> dt.time | None:
+        # Times are local, as on the wall clock: "13:30Z" or "13:30+05:00" would
+        # be silently shifted or crash a comparison, so they're refused.
+        if value and value.tzinfo is not None:
+            raise ValueError("Write a local time like 13:30.")
         return value.replace(second=0, microsecond=0) if value else value
 
 

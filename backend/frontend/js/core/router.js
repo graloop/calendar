@@ -5,20 +5,42 @@
 // here and handled without a reload.
 
 let handler = () => {};
+let shown = 0; // goes up by one each time a screen is shown
+
+// Each screen takes this number when it starts and checks it again after
+// waiting for the server: if another screen was asked for meanwhile (two quick
+// clicks on "Later"), the slower answer is dropped instead of drawn over it.
+export function screenNumber() {
+  return shown;
+}
 
 export function setRouteHandler(fn) {
   handler = fn;
-  window.addEventListener("popstate", () => handler());
+  window.addEventListener("popstate", () => {
+    shown++;
+    handler();
+  });
 }
 
 export function go(path) {
   if (location.pathname + location.search !== path) history.pushState({}, "", path);
   window.scrollTo(0, 0);
+  shown++;
   handler();
 }
 
-// Shows the current address again, after something changed (a course's colour...).
+// Shows the current address again, after something changed (a course's colour,
+// another calendar chosen...). Not on the event form: redrawing it would throw
+// away what's being typed. Its course list refreshes by itself.
 export function route() {
+  if (document.body.dataset.view === "event-view") return;
+  shown++;
+  handler();
+}
+
+// The first screen, when the page loads.
+export function start() {
+  shown++;
   handler();
 }
 

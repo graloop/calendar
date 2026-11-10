@@ -11,7 +11,7 @@ import { loadCourses } from "./core/courses.js";
 import { isValidDay, monthOf, todayISO } from "./core/dates.js";
 import { translatePage } from "./core/i18n.js";
 import "./core/theme.js";
-import { setRouteHandler } from "./core/router.js";
+import { setRouteHandler, start } from "./core/router.js";
 import { hideStatus, showStatus } from "./core/ui.js";
 import "./views/calendar-tabs.js";
 import { setReturnTo, showEvent } from "./views/event.js";
@@ -59,4 +59,4 @@ try {
 } catch (err) {
   showStatus(appError, err.message, true);
 }
-handleRoute();
+start();
