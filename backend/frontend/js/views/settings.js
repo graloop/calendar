@@ -1,6 +1,8 @@
 // The settings gear: the language, and the courses (code, name, colour, remove).
+// The calendars part is in settings-calendars.js.
 
 import { api, json } from "../core/api.js";
+import { loadCalendars } from "../core/calendars.js";
 import { getCourses, loadCourses, onCoursesChange } from "../core/courses.js";
 import { getLang, isSingular, setLang, t } from "../core/i18n.js";
 import { registerMenu } from "../core/menus.js";
@@ -97,7 +99,7 @@ function render() {
 onCoursesChange(render);
 registerMenu("settings-btn", "settings-panel", () => {
   hideStatus(status);
-  loadCourses().catch((err) => showStatus(status, err.message, true));
+  Promise.all([loadCourses(), loadCalendars()]).catch((err) => showStatus(status, err.message, true));
 });
 
 document.getElementById("settings-add-course").addEventListener("submit", async (e) => {

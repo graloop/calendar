@@ -6,15 +6,18 @@
 //   /month/2026-11          that month
 //   /event/5, /event/new    one event, or a new one (?date=2026-11-24)
 
+import { loadCalendars } from "./core/calendars.js";
 import { loadCourses } from "./core/courses.js";
 import { isValidDay, monthOf, todayISO } from "./core/dates.js";
 import { translatePage } from "./core/i18n.js";
 import "./core/theme.js";
 import { setRouteHandler } from "./core/router.js";
 import { hideStatus, showStatus } from "./core/ui.js";
+import "./views/calendar-tabs.js";
 import { setReturnTo, showEvent } from "./views/event.js";
 import { showMonth } from "./views/month.js";
 import "./views/settings.js";
+import "./views/settings-calendars.js";
 import { showUpcoming } from "./views/upcoming.js";
 import { showWeek } from "./views/week.js";
 
@@ -52,7 +55,7 @@ async function handleRoute() {
 setRouteHandler(handleRoute);
 
 try {
-  await loadCourses();
+  await Promise.all([loadCourses(), loadCalendars()]);
 } catch (err) {
   showStatus(appError, err.message, true);
 }

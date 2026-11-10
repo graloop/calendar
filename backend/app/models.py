@@ -1,5 +1,6 @@
 # The database tables: courses, events, the imports that added events, and a
 # small key-value table for things to remember (like the import box's text).
+# Calendars (School, Personal, Work...) and each week's to-do list are at the end.
 # Dates and times are local and stored as they are: one user, one timezone.
 
 import datetime as dt
@@ -64,6 +65,10 @@ class Event(Base):
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
     course: Mapped[Course | None] = relationship(back_populates="events", lazy="joined")
+    # Which calendar it's on. Nullable only so add_missing_columns can add it to an
+    # older database; startup puts any event without one on the first calendar.
+    calendar_id: Mapped[int | None] = mapped_column(ForeignKey("calendars.id"), index=True)
+    calendar: Mapped["Calendar | None"] = relationship(lazy="joined")
 
     @property
     def course_code(self) -> str | None:
@@ -73,6 +78,10 @@ class Event(Base):
     def course_color(self) -> str | None:
         return self.course.color if self.course else None
 
+    @property
+    def calendar_name(self) -> str | None:
+        return self.calendar.name if self.calendar else None
+
 
 class AppState(Base):
     """Small things to remember between page loads, like the import box's text."""
@@ -81,3 +90,40 @@ class AppState(Base):
 
     key: Mapped[str] = mapped_column(String(40), primary_key=True)
     value: Mapped[dict] = mapped_column(JSON)
+
+
+# --- Calendars and this week's list ---
+
+
+class Calendar(Base):
+    """One of the tabs above the views: School, Personal, Work... Every event and
+    every to-do belongs to one."""
+
+    __tablename__ = "calendars"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Unique whatever the case ("work" and "Work" would be confusing): checked in routers/calendars.py.
+    name: Mapped[str] = mapped_column(String(40), unique=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)  # the order of the tabs, from 0
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now)
+
+
+class Todo(Base):
+    """One line of a week's list: something to get done that week, not on a set day."""
+
+    __tablename__ = "todos"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    week: Mapped[dt.date] = mapped_column(Date, index=True)  # always that week's Monday
+    calendar_id: Mapped[int] = mapped_column(ForeignKey("calendars.id"), index=True)
+    text: Mapped[str] = mapped_column(String(300))
+    done: Mapped[bool] = mapped_column(default=False)
+    position: Mapped[int] = mapped_column(Integer, default=0)  # the order in the list
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+    calendar: Mapped[Calendar] = relationship(lazy="joined")
+
+    @property
+    def calendar_name(self) -> str:
+        return self.calendar.name

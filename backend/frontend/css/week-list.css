@@ -1,0 +1,32 @@
+/* "This week's list": the to-do panel above the Week grid and the Upcoming days. */
+
+.week-list-box { margin-bottom: 20px; }
+.week-list { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+
+.week-list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.week-list-head h3 { margin: 0; font-size: 1rem; }
+
+.week-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.week-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.week-item-check { flex: none; display: grid; place-items: center; width: 34px; height: 34px; margin: 0; }
+/* The text is a field, but looks like plain text until it's clicked. */
+.week-item-text { flex: 1; min-width: 0; min-height: 36px; border-color: transparent; background: none; }
+.week-item-text:hover { border-color: var(--border); }
+.week-item-text:focus { border-color: var(--accent); background: var(--field); }
+.week-item.is-done .week-item-text { text-decoration: line-through; color: var(--muted); }
+.week-item-delete { flex: none; min-height: 34px; padding: 4px 10px; font-size: 0.85rem; }
+
+/* Label, box (and calendar in "All") and Add on one line when there's room. */
+.week-add { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+.week-add label { margin: 0; }
+.week-add input { flex: 1 1 14rem; width: auto; }
+.week-add select { flex: 0 1 11rem; width: auto; }
+.week-add button { flex: none; }
+
+.week-carry { align-self: flex-start; }
+
+@media (max-width: 600px) {
+  .week-add { flex-direction: column; align-items: stretch; }
+  .week-add input, .week-add select { flex: none; width: 100%; }
+  .week-item-delete { min-height: 40px; }
+}

@@ -1,12 +1,14 @@
 // Upcoming: the next 14 days as a list, grouped by day, deadlines first with a
 // "done" box, then the deadlines that slipped by without being ticked.
-// The screen to open on the phone.
+// The screen to open on the phone. This week's list sits above the days.
 
 import { api, json } from "../core/api.js";
-import { addDays, formatDay, todayISO } from "../core/dates.js";
+import { calendarQuery } from "../core/calendars.js";
+import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
 import { byDay, eventLink, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
 import { el, hideStatus, showStatus, showView } from "../core/ui.js";
+import { showWeekList } from "./week-list.js";
 
 const DAYS = 14;
 const list = document.getElementById("upcoming-list");
@@ -50,10 +52,12 @@ export async function showUpcoming() {
   showView("upcoming");
   document.title = `${t("Upcoming")} · Agenda`;
   const today = todayISO();
+  showWeekList(document.getElementById("upcoming-week-list"), mondayOf(today));
   showStatus(status, t("Loading..."));
+  const only = calendarQuery(); // "" in "All", "&calendar=2" otherwise
   const [events, overdue] = await Promise.all([
-    api(`/api/events?from=${today}&to=${addDays(today, DAYS - 1)}`),
-    api(`/api/events?type=deadline&done=false&to=${addDays(today, -1)}`),
+    api(`/api/events?from=${today}&to=${addDays(today, DAYS - 1)}${only}`),
+    api(`/api/events?type=deadline&done=false&to=${addDays(today, -1)}${only}`),
   ]);
   hideStatus(status);
   const days = byDay(events);

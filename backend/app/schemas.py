@@ -84,6 +84,7 @@ class EventFields(BaseModel):
     details: str | None = Field(default=None, max_length=5000)
     source_link: str | None = Field(default=None, max_length=500)
     done: bool | None = None
+    calendar_id: int | None = None  # left out on a new event: the first calendar
 
     _code = field_validator("course", mode="before")(tidy_code)
     _texts = field_validator("location", "details", "source_link", mode="before")(tidy_text)
@@ -119,6 +120,8 @@ class EventOut(BaseModel):
     course_id: int | None
     course_code: str | None
     course_color: str | None
+    calendar_id: int | None
+    calendar_name: str | None
     date: dt.date
     start_time: dt.time | None
     end_time: dt.time | None
@@ -135,3 +138,92 @@ class EventOut(BaseModel):
     @field_serializer("start_time", "end_time")
     def _hh_mm(self, value: dt.time | None) -> str | None:
         return value.strftime("%H:%M") if value else None
+
+
+# --- Calendars and this week's list ---
+
+
+def tidy_line(value):
+    """One line of text: spaces at the ends out, runs of spaces made one."""
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+class CalendarCreate(BaseModel):
+    name: str = Field(max_length=40)
+
+    _name = field_validator("name", mode="before")(tidy_line)
+
+    @field_validator("name")
+    @classmethod
+    def _required(cls, value):
+        if not value:
+            raise ValueError("Give the calendar a name.")
+        return value
+
+
+class CalendarUpdate(CalendarCreate):
+    name: str | None = Field(default=None, max_length=40)
+    position: int | None = Field(default=None, ge=0)
+
+
+class CalendarOut(BaseModel):
+    id: int
+    name: str
+    position: int
+    event_count: int = 0
+    todo_count: int = 0  # the to-dos not done yet, all weeks together
+    todo_total: int = 0  # done or not: what removing the calendar would remove
+
+
+def check_monday(value: dt.date) -> dt.date:
+    if value.weekday() != 0:
+        raise ValueError("A week is given by its Monday.")
+    return value
+
+
+def required_text(value):
+    if not value:
+        raise ValueError("Write what there is to do.")
+    return value
+
+
+class TodoCreate(BaseModel):
+    week: dt.date
+    calendar_id: int
+    text: str = Field(max_length=300)
+
+    _week = field_validator("week")(check_monday)
+    _tidy = field_validator("text", mode="before")(tidy_line)
+    _text = field_validator("text")(required_text)
+
+
+class TodoUpdate(BaseModel):
+    """A change sends only what changed. Sending the text empty is refused."""
+
+    text: str | None = Field(default=None, max_length=300)
+    done: bool | None = None
+    position: int | None = Field(default=None, ge=0)
+
+    _tidy = field_validator("text", mode="before")(tidy_line)
+    _text = field_validator("text")(required_text)
+
+
+class TodoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    week: dt.date
+    calendar_id: int
+    calendar_name: str
+    text: str
+    done: bool
+    position: int
+    created_at: dt.datetime
+    updated_at: dt.datetime
+
+
+class CarryOver(BaseModel):
+    week: dt.date
+    calendar_id: int | None = None  # none: every calendar
+
+    _week = field_validator("week")(check_monday)

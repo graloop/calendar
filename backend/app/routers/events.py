@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..database import fold, get_db
 from ..models import Course, Event
 from ..schemas import EventCreate, EventFields, EventOut, EventType
-from . import courses
+from . import calendars, courses
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -44,6 +44,11 @@ def _apply(db: Session, item: Event, body: EventFields, always: set[str] = froze
             setattr(item, name, getattr(body, name))
     if "course" in sent:
         item.course = courses.get_or_create(db, body.course)
+    # Sent empty on a change: stays where it is. Left out on a new event: the first calendar.
+    if body.calendar_id is not None:
+        item.calendar = calendars.get_or_422(db, body.calendar_id)
+    elif item.calendar_id is None:
+        item.calendar = calendars.first_calendar(db)
     _check_times(item)
 
 
@@ -52,6 +57,7 @@ def list_events(
     from_: dt.date | None = Query(None, alias="from", description="First day, included."),
     to: dt.date | None = Query(None, description="Last day, included."),
     course: str | None = Query(None, description="A course code."),
+    calendar: int | None = Query(None, description="A calendar's id; none for all of them."),
     type: EventType | None = None,
     q: str | None = Query(None, description="Words in the title, details, location or course."),
     done: bool | None = None,
@@ -64,6 +70,8 @@ def list_events(
         query = query.where(Event.date <= to)
     if course:
         query = query.where(Course.code == course.strip().upper())
+    if calendar is not None:
+        query = query.where(Event.calendar_id == calendar)
     if type:
         query = query.where(Event.type == type)
     if done is not None:

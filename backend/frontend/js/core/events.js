@@ -1,7 +1,9 @@
 // How an event is drawn, the same on every screen: a real link to its page,
 // whose text says everything about it (date, time, type, course, title), so the
 // Claude extension and screen readers can read it without opening it.
+// In "All" calendars, the link also says which calendar the event is on.
 
+import { chosenCalendar } from "./calendars.js";
 import { formatDay, formatWhen } from "./dates.js";
 import { t } from "./i18n.js";
 import { typeBadge, typeLabel } from "./types.js";
@@ -34,6 +36,7 @@ export function eventLink(event, { showDate = false, compact = false } = {}) {
     el("span", { class: "ev-title" }, event.title),
     event.location && !compact ? el("span", { class: "ev-where" }, `· ${event.location}`) : null,
     event.done ? el("span", { class: "visually-hidden" }, `(${t("done")})`) : null,
+    event.calendar_name && chosenCalendar() === "all" ? el("span", { class: "cal-tag" }, event.calendar_name) : null,
   ].filter(Boolean);
   // Spaces between the parts, so the link's text reads as words, not "13:30Lab ABC123".
   const children = parts.flatMap((part, i) => (i ? [" ", part] : [part]));

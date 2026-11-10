@@ -1,0 +1,80 @@
+/* The calendar tabs under the top bar (All, School, Personal, Work...), the
+   small calendar name on event links in "All", and the Calendars part of
+   Settings. */
+
+.calendar-bar { max-width: 1100px; margin: 0 auto; padding: 12px 24px 0; }
+
+/* One line of tabs. On a phone it scrolls sideways by itself instead of
+   pushing the whole page wider. */
+.calendar-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px; /* room for the focus outline */
+  scrollbar-width: thin;
+}
+.cal-item { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+
+.cal-tab {
+  flex: none;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.cal-tab:hover { background: var(--accent-soft); }
+.cal-tab[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cal-new { border-style: dashed; color: var(--link); font-weight: 500; }
+
+/* The pencil next to the chosen tab. */
+.cal-rename {
+  flex: none;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+}
+.cal-rename:hover { background: var(--accent-soft); color: var(--link); }
+.cal-rename svg { width: 15px; height: 15px; }
+
+/* The tab while its name is being typed. */
+.cal-name-input { width: 11rem; min-height: 36px; padding: 4px 12px; border-radius: 999px; border-color: var(--accent); }
+
+#calendar-status { margin-top: 6px; }
+
+/* The calendar's name on an event link or a to-do, in "All". */
+.cal-tag {
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.event-link.compact .cal-tag { font-size: 0.68rem; padding: 0 4px; }
+
+/* Settings: one row per calendar, its name and Remove, the counts under them. */
+.settings-calendars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.settings-calendar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-calendar .calendar-count { grid-column: 1 / -1; }
+
+@media (max-width: 600px) {
+  .calendar-bar { padding: 8px 16px 0; }
+  .cal-tab { min-height: 40px; }
+  .cal-rename { width: 40px; height: 40px; }
+  .cal-name-input { min-height: 40px; }
+}
