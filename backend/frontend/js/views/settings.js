@@ -1,4 +1,5 @@
-// The settings gear: the language, and the courses (code, name, colour, remove).
+// The settings gear: the language, the courses (code, name, colour, remove)
+// and the past imports (past-imports.js).
 
 import { api, json } from "../core/api.js";
 import { getCourses, loadCourses, onCoursesChange } from "../core/courses.js";
@@ -6,6 +7,7 @@ import { getLang, isSingular, setLang, t } from "../core/i18n.js";
 import { registerMenu } from "../core/menus.js";
 import { route } from "../core/router.js";
 import { el, hideStatus, showStatus, twoClickButton } from "../core/ui.js";
+import { renderPastImports } from "./past-imports.js";
 
 const list = document.getElementById("settings-courses");
 const status = document.getElementById("settings-status");
@@ -98,6 +100,7 @@ onCoursesChange(render);
 registerMenu("settings-btn", "settings-panel", () => {
   hideStatus(status);
   loadCourses().catch((err) => showStatus(status, err.message, true));
+  renderPastImports();
 });
 
 document.getElementById("settings-add-course").addEventListener("submit", async (e) => {

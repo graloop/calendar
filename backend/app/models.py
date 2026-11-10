@@ -81,3 +81,16 @@ class AppState(Base):
 
     key: Mapped[str] = mapped_column(String(40), primary_key=True)
     value: Mapped[dict] = mapped_column(JSON)
+
+
+class ImportChange(Base):
+    """An event an import changed, with its values from before, so undoing the
+    import can put them back. event_id is a plain number, not a link: the event
+    may have been deleted by hand since, and undo then just skips it."""
+
+    __tablename__ = "import_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    import_id: Mapped[int] = mapped_column(ForeignKey("imports.id"), index=True)
+    event_id: Mapped[int] = mapped_column(Integer)
+    before: Mapped[dict] = mapped_column(JSON)

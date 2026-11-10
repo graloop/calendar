@@ -4,7 +4,8 @@
 
 import { closeMenus } from "./menus.js";
 
-const VIEWS = ["upcoming-view", "week-view", "month-view", "event-view"];
+const VIEWS = ["upcoming-view", "week-view", "month-view", "event-view", "import-view"];
+const TABS = ["upcoming", "week", "month", "import"];
 
 // Also marks the matching tab as the current one ("event" has no tab).
 export function showView(name) {
@@ -13,7 +14,7 @@ export function showView(name) {
   if (document.body.dataset.view !== id) closeMenus();
   for (const view of VIEWS) document.getElementById(view).classList.toggle("hidden", view !== id);
   document.body.dataset.view = id;
-  for (const tab of ["upcoming", "week", "month"]) {
+  for (const tab of TABS) {
     const link = document.getElementById(`tab-${tab}`);
     if (tab === name) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");

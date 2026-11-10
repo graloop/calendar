@@ -5,6 +5,7 @@
 //   /week/2026-11-23        the week holding that day
 //   /month/2026-11          that month
 //   /event/5, /event/new    one event, or a new one (?date=2026-11-24)
+//   /import                 the import box, its preview and Add to calendar
 
 import { loadCourses } from "./core/courses.js";
 import { isValidDay, monthOf, todayISO } from "./core/dates.js";
@@ -13,6 +14,7 @@ import "./core/theme.js";
 import { setRouteHandler } from "./core/router.js";
 import { hideStatus, showStatus } from "./core/ui.js";
 import { setReturnTo, showEvent } from "./views/event.js";
+import { showImport } from "./views/import.js";
 import { showMonth } from "./views/month.js";
 import "./views/settings.js";
 import { showUpcoming } from "./views/upcoming.js";
@@ -32,6 +34,7 @@ function show(path) {
   }
   if (path === "/event/new") return showEvent(null, new URLSearchParams(location.search).get("date"));
   if ((match = path.match(/^\/event\/(\d+)$/))) return showEvent(match[1]);
+  if (path === "/import") return showImport();
   return showUpcoming();
 }
 

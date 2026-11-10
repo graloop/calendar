@@ -99,4 +99,127 @@ export const FR = {
   "A deadline has only a due time, no end time.": "Une remise n'a qu'une heure limite, pas d'heure de fin.",
   "The end time must be after the start time.": "L'heure de fin doit être après l'heure de début.",
   "The title, type and date can't be empty.": "Le titre, le type et la date ne peuvent pas être vides.",
+
+  // Import: the tab, the preview, past imports in Settings, and the server's messages
+  // (the parser's line messages are matched by their template, with {values} kept).
+  Import: "Importer",
+  "Import events": "Importer des événements",
+  "Lines to import (one event per line)": "Lignes à importer (un événement par ligne)",
+  "Where the lines come from": "D'où viennent les lignes",
+  "Guess from the source column": "Deviner d'après la colonne source",
+  Moodle: "Moodle",
+  Email: "Courriel",
+  "Typed by hand": "Tapé à la main",
+  Preview: "Aperçu",
+  "What the import will do": "Ce que l'importation va faire",
+  Line: "Ligne",
+  Status: "État",
+  Time: "Heure",
+  Course: "Cours",
+  "Details and place": "Détails et lieu",
+  "Add to calendar": "Ajouter au calendrier",
+  "Undo this import": "Annuler cette importation",
+  "Past imports": "Importations passées",
+  "Undo removes the events an import added and puts back the ones it changed.":
+    "Annuler retire les événements qu'une importation a ajoutés et remet ceux qu'elle a changés.",
+  "How to write the lines": "Comment écrire les lignes",
+  "One event per line, with the fields in this order, separated by |:":
+    "Un événement par ligne, avec les champs dans cet ordre, séparés par | :",
+  "The day: 2026-11-24 or Tue Nov 24 (French works too: mardi 24 novembre). If you write the weekday, it must match the date, or the line is refused. Without a year, the nearest one is used.":
+    "Le jour : 2026-11-24 ou Tue Nov 24 (le français marche aussi : mardi 24 novembre). Si vous écrivez le jour de la semaine, il doit correspondre à la date, sinon la ligne est refusée. Sans année, la plus proche est prise.",
+  "13:30-15:20, or a start and a length: 13:30 75 min. For a deadline, only the due time: 23:59. Write all day when there is no time.":
+    "13:30-15:20, ou un début et une durée : 13:30 75 min. Pour une remise, seulement l'heure limite : 23:59. Écrivez all day (ou toute la journée) quand il n'y a pas d'heure.",
+  "One of class, lab, exam, deadline, meeting, work, personal, other. French words work too: cours, labo, examen, remise, réunion.":
+    "Un de class, lab, exam, deadline, meeting, work, personal, other. Les mots français marchent aussi : cours, labo, examen, remise, réunion.",
+  "The course code, like ABC123, or - for no course. A code the calendar doesn't know yet adds the course.":
+    "Le code du cours, comme ABC123, ou - pour aucun cours. Un code que le calendrier ne connaît pas encore ajoute le cours.",
+  "Short, like Lab report 3 or Final exam.": "Court, comme Rapport de labo 3 ou Examen final.",
+  "Optional free text. room: D7-2018 gives the place. weekly until 2026-12-12 repeats the event every week up to that date, and except 2026-10-13 skips one of those weeks (write except again for each week to skip).":
+    "Texte libre, facultatif. room: D7-2018 donne le lieu. weekly until 2026-12-12 répète l'événement chaque semaine jusqu'à cette date, et except 2026-10-13 saute une de ces semaines (écrivez except de nouveau pour chaque semaine à sauter).",
+  "Optional: the Moodle page's address, or Email: subject, date for an email.":
+    "Facultatif : l'adresse de la page Moodle, ou Email: sujet, date pour un courriel.",
+  "Example:": "Exemple :",
+  "Press Preview to check the lines: nothing is saved until you press Add to calendar. A line with a mistake says how to fix it, and the other lines still go in. Lines already on the calendar are skipped, and an event that moved shows its old and new date.":
+    "Appuyez sur Aperçu pour vérifier les lignes : rien n'est enregistré avant Ajouter au calendrier. Une ligne avec une erreur dit comment la corriger, et les autres lignes passent quand même. Les lignes déjà au calendrier sont sautées, et un événement déplacé montre son ancienne et sa nouvelle date.",
+  "Draft saved.": "Brouillon enregistré.",
+  "The lines changed since the preview. Press Preview again.":
+    "Les lignes ont changé depuis l'aperçu. Appuyez de nouveau sur Aperçu.",
+  New: "Nouveau",
+  "Already there": "Déjà là",
+  "Already there (earlier line)": "Déjà là (ligne plus haut)",
+  Changed: "Changé",
+  Error: "Erreur",
+  "new course": "nouveau cours",
+  weekly: "chaque semaine",
+  "{new} new, {changed} changed, {already} already there, {error} with an error.":
+    "{new} nouveaux, {changed} changés, {already} déjà là, {error} avec une erreur.",
+  "No event lines yet.": "Aucune ligne d'événement pour l'instant.",
+  "Nothing new or changed to add.": "Rien de nouveau ni de changé à ajouter.",
+  "Added {added}, changed {changed}, skipped {skipped}.": "Ajoutés : {added}, changés : {changed}, sautés : {skipped}.",
+  "Lines with an error, not added: {errors}.": "Lignes avec une erreur, non ajoutées : {errors}.",
+  "Import undone: removed {removed}, put back {restored}.":
+    "Importation annulée : {removed} retirés, {restored} remis comme avant.",
+  Undo: "Annuler",
+  "Undone on {date}": "Annulée le {date}",
+  "Undo the import of {date}: removes the {added} events it added and puts back the {changed} it changed":
+    "Annuler l'importation du {date} : retire les {added} événements ajoutés et remet les {changed} changés",
+  "No imports yet.": "Aucune importation pour l'instant.",
+  Monday: "lundi",
+  Tuesday: "mardi",
+  Wednesday: "mercredi",
+  Thursday: "jeudi",
+  Friday: "vendredi",
+  Saturday: "samedi",
+  Sunday: "dimanche",
+  "Import not found.": "Importation introuvable.",
+  "The calendar changed since the preview. Press Preview again.":
+    "Le calendrier a changé depuis l'aperçu. Appuyez de nouveau sur Aperçu.",
+  "This import was already undone.": "Cette importation a déjà été annulée.",
+  "'{value}' isn't a date I can read. Write it like Tue Nov 24 or 2026-11-24.":
+    "« {value} » n'est pas une date que je sais lire. Écrivez-la comme Tue Nov 24 ou 2026-11-24.",
+  "'{value}' isn't a real date. Check the day and the month.":
+    "« {value} » n'est pas une vraie date. Vérifiez le jour et le mois.",
+  "The date is empty. Write it like Tue Nov 24 or 2026-11-24.":
+    "La date est vide. Écrivez-la comme Tue Nov 24 ou 2026-11-24.",
+  "'{value}' has no day of the month. Write it like Tue Nov 24 or 2026-11-24.":
+    "« {value} » n'a pas de jour du mois. Écrivez-la comme Tue Nov 24 ou 2026-11-24.",
+  "'{value}' has no month. Write it like Tue Nov 24 or 2026-11-24.":
+    "« {value} » n'a pas de mois. Écrivez-la comme Tue Nov 24 ou 2026-11-24.",
+  "{date} is a {weekday}, not a {written}. Check the date or the weekday.":
+    "Le {date} est un {weekday}, pas un {written}. Vérifiez la date ou le jour de la semaine.",
+  "{date} is more than a year from today. Check the year.":
+    "Le {date} est à plus d'un an d'aujourd'hui. Vérifiez l'année.",
+  "'{value}' isn't a time I can read. Write it like 13:30-15:20, 13:30 75 min, 23:59 or all day.":
+    "« {value} » n'est pas une heure que je sais lire. Écrivez-la comme 13:30-15:20, 13:30 75 min, 23:59 ou all day.",
+  "The length has to be more than 0 minutes. Write it like 13:30 75 min.":
+    "La durée doit être de plus de 0 minute. Écrivez-la comme 13:30 75 min.",
+  "'{value}' goes past midnight. End it at 23:59 or split it in two lines.":
+    "« {value} » dépasse minuit. Finissez à 23:59 ou faites-en deux lignes.",
+  "A deadline has only a due time. Write just that, like 23:59.":
+    "Une remise n'a qu'une heure limite. Écrivez seulement celle-là, comme 23:59.",
+  "The end ({end}) isn't after the start ({start}). Write it like 13:30-15:20.":
+    "La fin ({end}) n'est pas après le début ({start}). Écrivez comme 13:30-15:20.",
+  "'{value}' isn't a type. Use one of: class, lab, exam, deadline, meeting, work, personal, other.":
+    "« {value} » n'est pas un type. Utilisez un de : class, lab, exam, deadline, meeting, work, personal, other.",
+  "'{value}' isn't a course code. Write a code like ABC123, or - for no course.":
+    "« {value} » n'est pas un code de cours. Écrivez un code comme ABC123, ou - pour aucun cours.",
+  "The source is longer than 500 characters. Use the page's address, or Email: subject, date.":
+    "La source dépasse 500 caractères. Utilisez l'adresse de la page, ou Email: sujet, date.",
+  "Write the end of the series like weekly until 2026-12-12 (year-month-day).":
+    "Écrivez la fin de la série comme weekly until 2026-12-12 (année-mois-jour).",
+  "The details are longer than 5000 characters. Keep only what matters.":
+    "Les détails dépassent 5000 caractères. Gardez seulement l'essentiel.",
+  "except {date} only works with weekly until on the same line.":
+    "except {date} ne marche qu'avec weekly until sur la même ligne.",
+  "weekly until {until} is before the first date ({date}). Check both dates.":
+    "weekly until {until} est avant la première date ({date}). Vérifiez les deux dates.",
+  "except {date} isn't one of this series' days (every {weekday} from {first} to {until}). Check the date.":
+    "except {date} n'est pas un des jours de cette série (chaque {weekday} du {first} au {until}). Vérifiez la date.",
+  "There's no | between the fields. Write: date | time | type | course | title | details | source.":
+    "Il n'y a pas de | entre les champs. Écrivez : date | time | type | course | title | details | source.",
+  "Only {count} fields. Write: date | time | type | course | title, then details and source if you have them.":
+    "Seulement {count} champs. Écrivez : date | time | type | course | title, puis details et source si vous les avez.",
+  "The title is empty. Write a short title, like Lab 3.": "Le titre est vide. Écrivez un titre court, comme Lab 3.",
+  "The title is longer than 200 characters. Make it shorter and put the rest in the details.":
+    "Le titre dépasse 200 caractères. Raccourcissez-le et mettez le reste dans les détails.",
 };
