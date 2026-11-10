@@ -1,0 +1,29 @@
+# Agenda on the home server, as a Portainer stack (see docs/server.md).
+# Home network only: there are no logins, so never forward port 8030 on the
+# router and never put it behind a public tunnel. Away from home, use Tailscale
+# (docs/safety.md). Everything worth keeping is in the agenda_data volume:
+# updating the app doesn't touch it.
+services:
+  agenda:
+    # Built by GitHub Actions (.github/workflows/ci.yml) on every push to main
+    # and published to GitHub's registry, so Portainer only has to pull it.
+    # Tags: latest, the VERSION number (e.g. 1) and sha-<short commit>; set
+    # TAG in the stack to go back to an earlier version.
+    image: ghcr.io/graloop/agenda:${TAG:-latest}
+    # A fixed name, so scripts/backup.sh can find it with `docker exec agenda`.
+    container_name: agenda
+    restart: unless-stopped
+    environment:
+      # The server's clock: what "today" and "this week" mean.
+      TZ: ${TZ:-America/Toronto}
+      # No Swagger page at /docs on the server.
+      ENABLE_API_DOCS: "false"
+    ports:
+      - "8030:8000"
+    volumes:
+      - agenda_data:/data
+
+volumes:
+  agenda_data:
+    # A fixed name: the calendar stays the same volume even if the stack is renamed.
+    name: agenda_data
