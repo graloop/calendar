@@ -182,13 +182,27 @@ function cell(after, before, className = "") {
   );
 }
 
-function detailsText(event) {
+// The place, details and source in one cell. Only the place can change on save
+// (details and source aren't compared), so for "changed" only the place shows as
+// old → new and the rest stays plain, instead of the whole cell looking changed.
+function detailsCell(row, oldLocation) {
+  const td = el("td", { class: "import-details" });
   const parts = [];
-  if (event.location) parts.push(event.location);
-  if (event.details) parts.push(event.details);
-  if (event.series) parts.push(t("weekly"));
-  if (event.source_link) parts.push(event.source_link);
-  return parts.join(" · ");
+  if (oldLocation !== undefined && oldLocation !== row.location) {
+    td.classList.add("changed-cell");
+    parts.push([
+      el("span", { class: "change-before" }, oldLocation || "–"),
+      " → ",
+      el("strong", {}, row.location || "–"),
+    ]);
+  } else if (row.location) {
+    parts.push([row.location]);
+  }
+  if (row.details) parts.push([row.details]);
+  if (row.series) parts.push([t("weekly")]);
+  if (row.source_link) parts.push([row.source_link]);
+  parts.forEach((part, i) => td.append(...(i ? [" · "] : []), ...part));
+  return td;
 }
 
 function tableRow(row) {
@@ -222,7 +236,7 @@ function tableRow(row) {
     el("td", {}, typeBadge(row.type)),
     el("td", {}, row.course ?? "–"),
     cell(row.title, changed ? old.title : undefined),
-    cell(detailsText(row), changed ? detailsText(old) : undefined, "import-details"),
+    detailsCell(row, changed ? old.location : undefined),
   );
 }
 
