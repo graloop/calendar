@@ -1,7 +1,8 @@
 // The row of calendar tabs under the top bar: "All", then each calendar, then
 // "+ New calendar". Choosing one shows the current screen again with only that
-// calendar's events. The chosen tab has a small pencil to rename it in place:
-// Enter or leaving the box saves, Escape puts the old name back.
+// calendar's events. The chosen tab has a small pencil to rename it in place
+// (Enter or leaving the box saves, Escape puts the old name back) and a small
+// bin to remove it, in two clicks: the second says what goes with it.
 
 import { api, json } from "../core/api.js";
 import {
@@ -12,6 +13,7 @@ import {
   loadCalendars,
   newCalendarName,
   onCalendarsChange,
+  whatGoes,
 } from "../core/calendars.js";
 import { t } from "../core/i18n.js";
 import { route } from "../core/router.js";
@@ -22,8 +24,13 @@ const status = document.getElementById("calendar-status");
 
 let renaming = null; // the id of the calendar whose name is being typed
 
-// A small pencil, drawn as lines like the event type icons.
-function pencil() {
+// A small icon drawn as lines like the event type icons: a pencil or a bin.
+const ICONS = {
+  pencil: "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  bin: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6",
+};
+
+function icon(name) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   for (const [name, value] of Object.entries({
     viewBox: "0 0 24 24",
@@ -37,7 +44,7 @@ function pencil() {
     svg.setAttribute(name, value);
   }
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z");
+  path.setAttribute("d", ICONS[name]);
   svg.append(path);
   return svg;
 }
@@ -94,12 +101,58 @@ function calendarTab(calendar) {
     const rename = el(
       "button",
       { type: "button", class: "cal-rename", "aria-label": label, title: t("Rename"), "data-focus": "rename" },
-      pencil(),
+      icon("pencil"),
     );
     rename.addEventListener("click", () => startRename(calendar.id));
     parts.push(rename);
+    // There must always be one calendar for new events to go on.
+    if (getCalendars().length > 1) parts.push(removeButton(calendar));
   }
   return el("span", { class: "cal-item" }, ...parts);
+}
+
+// The bin: the first click turns it into a red "Click again..." button that
+// says what goes with the calendar; it goes back to a bin after 4 seconds.
+function removeButton(calendar) {
+  const label = t("Remove the calendar {name}", { name: calendar.name });
+  const count = whatGoes(calendar);
+  const confirmLabel = count ? t("Click again: removes its {count} too", { count }) : t("Click again to remove");
+  const button = el("button", { type: "button", class: "cal-rename cal-remove", "data-focus": "remove" });
+  let timer = null;
+  // Same two clicks as twoClickButton in ui.js, but the resting button is an icon, not a word.
+  const reset = () => {
+    clearTimeout(timer);
+    button.classList.remove("confirming");
+    button.replaceChildren(icon("bin"));
+    button.setAttribute("aria-label", label);
+    button.title = t("Remove");
+  };
+  button.addEventListener("click", () => {
+    if (!button.classList.contains("confirming")) {
+      button.classList.add("confirming");
+      button.textContent = confirmLabel;
+      button.setAttribute("aria-label", confirmLabel);
+      timer = setTimeout(reset, 4000);
+      return;
+    }
+    reset();
+    removeCalendar(calendar);
+  });
+  reset();
+  return button;
+}
+
+async function removeCalendar(calendar) {
+  hideStatus(status);
+  try {
+    await api(`/api/calendars/${calendar.id}?delete_events=true`, { method: "DELETE" });
+    chooseCalendar("all"); // Its tab is gone: show everything.
+    await loadCalendars();
+    route();
+    bar.querySelector('[data-focus="tab-all"]')?.focus();
+  } catch (err) {
+    showStatus(status, err.message, true);
+  }
 }
 
 // `focus`: the data-focus of the element to put the keyboard back on, since redrawing loses it.

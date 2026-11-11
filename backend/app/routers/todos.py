@@ -1,6 +1,7 @@
 # This week's list: things to get done during a week, not on a set day ("read
 # chapter 4", "book the dentist"). Each week is named by its Monday, each item
-# is on one calendar, and what's left at the end of a week can move to the next.
+# is on one calendar, and what's left at the end of a week can move to the next
+# (or what's planned for next week can be brought back to this one).
 
 import datetime as dt
 
@@ -31,16 +32,23 @@ def _next_position(db: Session, week: dt.date) -> int:
 
 @router.get("", response_model=list[TodoOut])
 def list_todos(
-    week: dt.date = Query(description="The week's Monday."),
+    week: dt.date | None = Query(None, description="The week's Monday."),
+    start: dt.date | None = Query(None, alias="from", description="With `to`: every week from this Monday..."),
+    end: dt.date | None = Query(None, alias="to", description="...to this Monday (the Month view's weeks)."),
     calendar: int | None = Query(None, description="A calendar's id; none for all of them."),
     db: Session = Depends(get_db),
 ):
-    if week.weekday() != 0:
+    # Either one week, or a range of weeks; each is named by its Monday.
+    if week is not None:
+        start = end = week
+    if start is None or end is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Give a week, or from and to.")
+    if start.weekday() != 0 or end.weekday() != 0:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "A week is given by its Monday.")
-    query = select(Todo).where(Todo.week == week)
+    query = select(Todo).where(Todo.week >= start, Todo.week <= end)
     if calendar is not None:
         query = query.where(Todo.calendar_id == calendar)
-    return db.scalars(query.order_by(Todo.position, Todo.id)).all()
+    return db.scalars(query.order_by(Todo.week, Todo.position, Todo.id)).all()
 
 
 @router.post("", response_model=TodoOut, status_code=status.HTTP_201_CREATED)
@@ -69,17 +77,28 @@ def delete_todo(todo_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+def _move_unfinished(db: Session, from_week: dt.date, to_week: dt.date, calendar_id: int | None) -> int:
+    """Moves what isn't done yet from one week's list to the end of another's."""
+    query = select(Todo).where(Todo.week == from_week, Todo.done.is_(False))
+    if calendar_id is not None:
+        query = query.where(Todo.calendar_id == calendars.get_or_422(db, calendar_id).id)
+    items = db.scalars(query.order_by(Todo.position, Todo.id)).all()
+    position = _next_position(db, to_week)
+    for i, item in enumerate(items):
+        item.week = to_week
+        item.position = position + i
+    db.commit()
+    return len(items)
+
+
 @router.post("/carry-over")
 def carry_over(body: CarryOver, db: Session = Depends(get_db)):
     """Moves what isn't done yet to the next week's list, after what's already there."""
-    query = select(Todo).where(Todo.week == body.week, Todo.done.is_(False))
-    if body.calendar_id is not None:
-        query = query.where(Todo.calendar_id == calendars.get_or_422(db, body.calendar_id).id)
-    items = db.scalars(query.order_by(Todo.position, Todo.id)).all()
-    next_week = body.week + dt.timedelta(days=7)
-    position = _next_position(db, next_week)
-    for i, item in enumerate(items):
-        item.week = next_week
-        item.position = position + i
-    db.commit()
-    return {"moved": len(items)}
+    return {"moved": _move_unfinished(db, body.week, body.week + dt.timedelta(days=7), body.calendar_id)}
+
+
+@router.post("/bring-back")
+def bring_back(body: CarryOver, db: Session = Depends(get_db)):
+    """The other way: brings what isn't done on the next week's list to this week's
+    (`week`), after what's already there. For when I get ahead."""
+    return {"moved": _move_unfinished(db, body.week + dt.timedelta(days=7), body.week, body.calendar_id)}

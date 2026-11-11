@@ -2,23 +2,13 @@
 // with two clicks (the second one says how many events and to-dos go with it).
 
 import { api, json } from "../core/api.js";
-import { getCalendars, loadCalendars, onCalendarsChange } from "../core/calendars.js";
+import { getCalendars, loadCalendars, onCalendarsChange, whatGoes } from "../core/calendars.js";
 import { isSingular, t } from "../core/i18n.js";
 import { route } from "../core/router.js";
 import { el, hideStatus, showStatus, twoClickButton } from "../core/ui.js";
 
 const list = document.getElementById("settings-calendars");
 const status = document.getElementById("settings-status");
-
-// "3 events", "3 events and 1 to-do", "1 to-do": what removing it takes away.
-function whatGoes(calendar) {
-  const parts = [];
-  const events = calendar.event_count;
-  const todos = calendar.todo_total;
-  if (events) parts.push(isSingular(events) ? t("{n} event", { n: events }) : t("{n} events", { n: events }));
-  if (todos) parts.push(isSingular(todos) ? t("{n} to-do", { n: todos }) : t("{n} to-dos", { n: todos }));
-  return parts.length === 2 ? t("{a} and {b}", { a: parts[0], b: parts[1] }) : (parts[0] ?? "");
-}
 
 async function rename(calendar, input) {
   hideStatus(status);

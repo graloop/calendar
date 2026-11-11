@@ -3,7 +3,7 @@
 // choice is remembered in this browser, so the phone opens on the same tab.
 
 import { api } from "./api.js";
-import { t } from "./i18n.js";
+import { isSingular, t } from "./i18n.js";
 
 const KEY = "ag_calendar";
 let calendars = [];
@@ -80,4 +80,14 @@ export function fillCalendarSelect(select, selected) {
       return option;
     }),
   );
+}
+
+// "3 events", "3 events and 1 to-do", "1 to-do": what removing a calendar takes away.
+export function whatGoes(calendar) {
+  const parts = [];
+  const events = calendar.event_count;
+  const todos = calendar.todo_total;
+  if (events) parts.push(isSingular(events) ? t("{n} event", { n: events }) : t("{n} events", { n: events }));
+  if (todos) parts.push(isSingular(todos) ? t("{n} to-do", { n: todos }) : t("{n} to-dos", { n: todos }));
+  return parts.length === 2 ? t("{a} and {b}", { a: parts[0], b: parts[1] }) : (parts[0] ?? "");
 }

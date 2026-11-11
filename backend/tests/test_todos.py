@@ -96,3 +96,26 @@ def test_carry_over_for_one_calendar(client):
     assert client.post("/api/todos/carry-over", json={"week": MONDAY, "calendar_id": work}).json() == {"moved": 1}
     assert texts(client, f"week={MONDAY}") == ["School thing"]
     assert texts(client, f"week={NEXT_MONDAY}") == ["Work thing"]
+
+
+def test_bring_back_next_weeks_unfinished(client):
+    add_todo(client, text="Already this week")
+    add_todo(client, text="Next 1", week=NEXT_MONDAY)
+    done = add_todo(client, text="Next done", week=NEXT_MONDAY)
+    client.patch(f"/api/todos/{done['id']}", json={"done": True})
+    add_todo(client, text="Next work", week=NEXT_MONDAY, calendar="Work")
+    work = calendar_ids(client)["Work"]
+    assert client.post("/api/todos/bring-back", json={"week": MONDAY, "calendar_id": work}).json() == {"moved": 1}
+    assert client.post("/api/todos/bring-back", json={"week": MONDAY}).json() == {"moved": 1}
+    assert texts(client, f"week={MONDAY}") == ["Already this week", "Next work", "Next 1"]
+    assert texts(client, f"week={NEXT_MONDAY}") == ["Next done"]
+    assert client.post("/api/todos/bring-back", json={"week": "2026-11-25"}).status_code == 422
+
+
+def test_list_a_range_of_weeks(client):
+    add_todo(client, text="Next", week=NEXT_MONDAY)
+    add_todo(client, text="This")
+    assert texts(client, f"from={MONDAY}&to={NEXT_MONDAY}") == ["This", "Next"]
+    assert texts(client, f"from={NEXT_MONDAY}&to={NEXT_MONDAY}") == ["Next"]
+    assert client.get(f"/api/todos?from={MONDAY}").status_code == 422
+    assert client.get(f"/api/todos?from={MONDAY}&to=2026-12-01").status_code == 422

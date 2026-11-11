@@ -128,6 +128,14 @@ export const FR = {
   Add: "Ajouter",
   "Move unfinished to next week": "Reporter ce qui reste à la semaine prochaine",
   "Moved {n} to next week.": "{n} reportée(s) à la semaine prochaine.",
+  "Bring next week's {n} unfinished here": "Ramener ici les {n} tâches non faites de la semaine prochaine",
+  "Brought {n} from next week.": "{n} ramenée(s) de la semaine prochaine.",
+  "To do": "À faire",
+  "To do, week of {date}": "À faire, semaine du {date}",
+  "Nothing yet.": "Rien pour l'instant.",
+  "↑ Next week's ({n})": "↑ Semaine suivante ({n})",
+  "Bring next week's {n} unfinished to the week of {date}":
+    "Ramener les {n} tâches non faites de la semaine suivante à la semaine du {date}",
   "Calendar not found.": "Calendrier introuvable.",
   "This calendar doesn't exist.": "Ce calendrier n'existe pas.",
   "Another calendar already has this name.": "Un autre calendrier a déjà ce nom.",
@@ -135,6 +143,7 @@ export const FR = {
   "This calendar still has events or to-dos.": "Ce calendrier a encore des événements ou des tâches.",
   "Give the calendar a name.": "Donnez un nom au calendrier.",
   "A week is given by its Monday.": "Une semaine se donne par son lundi.",
+  "Give a week, or from and to.": "Donnez une semaine, ou un début et une fin.",
   "Write what there is to do.": "Écrivez ce qu'il y a à faire.",
   "To-do not found.": "Tâche introuvable.",
   // Import: the tab, the preview, past imports in Settings, and the server's messages

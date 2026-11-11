@@ -80,6 +80,8 @@
 
 /* --- Week and Month grids --- */
 .week-grid, .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+/* The month has an eighth column: each week's to-do box. */
+.month-grid { grid-template-columns: repeat(7, minmax(0, 1fr)) minmax(0, 1.1fr); }
 
 .grid-head {
   padding: 0 4px 2px;
@@ -109,6 +111,27 @@
 .day-date { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
 .day-date::first-letter { text-transform: uppercase; }
 .today .day-date { color: var(--link); }
+
+/* The week's to-do box at the end of each month row. */
+.todo-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 0.78rem;
+}
+.month-todo-head { font-size: 0.8rem; font-weight: 600; color: var(--link); text-decoration: none; }
+.month-todo-head:hover { text-decoration: underline; }
+.month-todos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.month-todo label { display: flex; align-items: flex-start; gap: 5px; margin: 0; font-weight: 400; overflow-wrap: anywhere; }
+.month-todo input { flex: none; width: auto; margin: 2px 0 0; }
+.month-todo.is-done span { text-decoration: line-through; color: var(--muted); }
+.todo-cell .status { margin: 0; font-size: 0.75rem; }
+.month-bring { align-self: flex-start; max-width: 100%; min-height: 0; white-space: normal; margin-top: auto; padding: 3px 6px; font-size: 0.72rem; text-align: left; }
 
 /* The "+" in a day's corner: adds an event on that day. */
 .add-btn {
@@ -147,6 +170,9 @@
 /* Phones: one column, a day under the other. */
 @media (max-width: 700px) {
   .week-grid, .month-grid { grid-template-columns: 1fr; }
+  .todo-cell { margin-bottom: 10px; font-size: 0.85rem; }
+  .month-todo input { width: 18px; height: 18px; }
+  .month-bring { min-height: 36px; font-size: 0.82rem; }
   .grid-head, .day-cell.other-month { display: none; }
   .day-cell, .month-grid .day-cell { min-height: 0; padding-right: 40px; padding-bottom: 8px; }
   .add-btn { top: 6px; bottom: auto; width: 30px; height: 30px; opacity: 0.8; }

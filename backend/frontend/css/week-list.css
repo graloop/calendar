@@ -23,7 +23,7 @@
 .week-add select { flex: 0 1 11rem; width: auto; }
 .week-add button { flex: none; }
 
-.week-carry { align-self: flex-start; }
+.week-moves { display: flex; flex-wrap: wrap; gap: 8px; }
 
 @media (max-width: 600px) {
   .week-add { flex-direction: column; align-items: stretch; }

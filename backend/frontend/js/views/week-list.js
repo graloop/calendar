@@ -2,18 +2,20 @@
 // above the Week grid (for the week shown) and above Upcoming (for this week).
 // Each item has a box to tick, its text in a field to reword it, and a delete
 // that takes two clicks. In "All", each item says its calendar and the add form
-// asks which calendar a new one goes on.
+// asks which calendar a new one goes on. Under the list: move what's left to
+// next week, or bring next week's unfinished items to this one.
 
 import { api, json } from "../core/api.js";
 import { calendarQuery, chosenCalendar, defaultCalendarId, fillCalendarSelect } from "../core/calendars.js";
+import { addDays } from "../core/dates.js";
 import { t } from "../core/i18n.js";
 import { el, hideStatus, showStatus, twoClickButton } from "../core/ui.js";
 
 // One panel per container (Week and Upcoming each have theirs), redrawn from the server after each change.
-const panels = new Map(); // container -> { monday, items, request }
+const panels = new Map(); // container -> { monday, items, nextCount, request }
 
 function panelFor(container) {
-  if (!panels.has(container)) panels.set(container, { monday: null, items: [], request: 0 });
+  if (!panels.has(container)) panels.set(container, { monday: null, items: [], nextCount: 0, request: 0 });
   return panels.get(container);
 }
 
@@ -28,9 +30,14 @@ async function refresh(container, { focus = null, message = null } = {}) {
   const panel = panelFor(container);
   const request = ++panel.request; // Moving on fast: only the last answer is drawn.
   try {
-    const items = await api(`/api/todos?week=${panel.monday}${calendarQuery()}`);
+    // Next week's list too, only to know whether there's anything to bring back.
+    const [items, next] = await Promise.all([
+      api(`/api/todos?week=${panel.monday}${calendarQuery()}`),
+      api(`/api/todos?week=${addDays(panel.monday, 7)}${calendarQuery()}`),
+    ]);
     if (request !== panel.request) return;
     panel.items = items;
+    panel.nextCount = next.filter((item) => !item.done).length;
     render(container, { focus, message });
   } catch (err) {
     if (request !== panel.request) return;
@@ -171,6 +178,24 @@ function render(container, { focus = null, message = null, isError = false } = {
     });
   }
 
+  let bring = null;
+  if (panel.nextCount) {
+    bring = el(
+      "button",
+      { type: "button", class: "btn-ghost week-carry" },
+      t("Bring next week's {n} unfinished here", { n: panel.nextCount }),
+    );
+    bring.addEventListener("click", async () => {
+      const chosen = chosenCalendar();
+      const body = { week: panel.monday, calendar_id: chosen === "all" ? null : chosen };
+      const answer = await api("/api/todos/bring-back", json("POST", body)).catch((err) => {
+        refresh(container, { message: err.message, isError: true });
+        return null;
+      });
+      if (answer) refresh(container, { message: t("Brought {n} from next week.", { n: answer.moved }) });
+    });
+  }
+
   const status = el("p", { class: "status week-list-status hidden", "aria-live": "polite" });
   container.replaceChildren(
     el(
@@ -179,7 +204,7 @@ function render(container, { focus = null, message = null, isError = false } = {
       head,
       list,
       addForm(container, showCalendar),
-      carry,
+      carry || bring ? el("div", { class: "week-moves" }, carry, bring) : null,
       status,
     ),
   );
