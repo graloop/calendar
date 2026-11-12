@@ -1,5 +1,9 @@
 // The page's address: /upcoming, /week/2026-11-23, /month/2026-11, /event/5...
 // changes without reloading the page. main.js says what each address shows.
+// Opening a screen loads its data fresh; route() (another calendar tab chosen,
+// say) redraws from what's already loaded (see getOnce in api.js).
+
+import { forgetAnswers } from "./api.js";
 // Links inside the page are real links (they can be opened in a new tab, and
 // the Claude extension can read where they go); a plain click on one is caught
 // here and handled without a reload.
@@ -17,6 +21,7 @@ export function screenNumber() {
 export function setRouteHandler(fn) {
   handler = fn;
   window.addEventListener("popstate", () => {
+    forgetAnswers();
     shown++;
     handler();
   });
@@ -25,6 +30,7 @@ export function setRouteHandler(fn) {
 export function go(path) {
   if (location.pathname + location.search !== path) history.pushState({}, "", path);
   window.scrollTo(0, 0);
+  forgetAnswers();
   shown++;
   handler();
 }
@@ -40,6 +46,7 @@ export function route() {
 
 // The first screen, when the page loads.
 export function start() {
+  forgetAnswers();
   shown++;
   handler();
 }

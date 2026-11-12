@@ -2,8 +2,8 @@
 // "done" box, then the deadlines that slipped by without being ticked.
 // The screen to open on the phone. This week's list sits above the days.
 
-import { api, json } from "../core/api.js";
-import { calendarQuery } from "../core/calendars.js";
+import { api, getOnce, json } from "../core/api.js";
+import { onlyChosen } from "../core/calendars.js";
 import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
 import { byDay, eventLink, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
@@ -55,14 +55,15 @@ export async function showUpcoming() {
   const today = todayISO();
   showWeekList(document.getElementById("upcoming-week-list"), mondayOf(today));
   showStatus(status, t("Loading..."));
-  const only = calendarQuery(); // "" in "All", "&calendar=2" otherwise
   const asked = screenNumber();
   let events, overdue;
   try {
     [events, overdue] = await Promise.all([
-      api(`/api/events?from=${today}&to=${addDays(today, DAYS - 1)}${only}`),
-      api(`/api/events?type=deadline&done=false&to=${addDays(today, -1)}${only}`),
+      getOnce(`/api/events?from=${today}&to=${addDays(today, DAYS - 1)}`),
+      getOnce(`/api/events?type=deadline&done=false&to=${addDays(today, -1)}`),
     ]);
+    events = onlyChosen(events);
+    overdue = onlyChosen(overdue);
   } finally {
     hideStatus(status);
   }

@@ -2,8 +2,8 @@
 // phone). Each day lists its events and has a "+" to add one. The week's
 // to-do list is above the grid.
 
-import { api } from "../core/api.js";
-import { calendarQuery } from "../core/calendars.js";
+import { getOnce } from "../core/api.js";
+import { onlyChosen } from "../core/calendars.js";
 import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
 import { addButton, byDay, eventLink, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
@@ -44,7 +44,7 @@ export async function showWeek(day) {
   const asked = screenNumber();
   let events;
   try {
-    events = await api(`/api/events?from=${monday}&to=${sunday}${calendarQuery()}`);
+    events = onlyChosen(await getOnce(`/api/events?from=${monday}&to=${sunday}`));
   } finally {
     hideStatus(status);
   }

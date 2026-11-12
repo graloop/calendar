@@ -3,8 +3,8 @@
 // each week, a small "To do" box shows that week's list: tick items there, or
 // bring up what's planned for the week after.
 
-import { api, json } from "../core/api.js";
-import { calendarQuery, chosenCalendar } from "../core/calendars.js";
+import { api, getOnce, json } from "../core/api.js";
+import { chosenCalendar, onlyChosen } from "../core/calendars.js";
 import {
   addDays,
   addMonths,
@@ -45,9 +45,11 @@ export async function showMonth(month) {
   try {
     // The to-dos go one week past the grid, to know if the last week can bring any up.
     [events, todos] = await Promise.all([
-      api(`/api/events?from=${start}&to=${end}${calendarQuery()}`),
-      api(`/api/todos?from=${start}&to=${addDays(end, 1)}${calendarQuery()}`),
+      getOnce(`/api/events?from=${start}&to=${end}`),
+      getOnce(`/api/todos?from=${start}&to=${addDays(end, 1)}`),
     ]);
+    events = onlyChosen(events);
+    todos = onlyChosen(todos);
   } finally {
     hideStatus(status);
   }

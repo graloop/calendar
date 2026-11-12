@@ -47,10 +47,11 @@ export function chooseCalendar(value) {
   }
 }
 
-// Added to the end of an /api/events or /api/todos address: "" for all calendars.
-export function calendarQuery() {
+// The screens load every calendar's events and to-dos once, then keep only
+// the chosen tab's here, in the browser: switching tabs needs no request.
+export function onlyChosen(items) {
   const chosen = chosenCalendar();
-  return chosen === "all" ? "" : `&calendar=${chosen}`;
+  return chosen === "all" ? items : items.filter((item) => item.calendar_id === chosen);
 }
 
 // Where something new goes: the chosen calendar, or the first one in "All".

@@ -7,8 +7,8 @@
 // at the bottom (the server sorts them there). The dots at the start of a row
 // drag it up or down, with a mouse, a finger or the arrow keys.
 
-import { api, json } from "../core/api.js";
-import { calendarQuery, chosenCalendar, defaultCalendarId, fillCalendarSelect } from "../core/calendars.js";
+import { api, getOnce, json } from "../core/api.js";
+import { chosenCalendar, defaultCalendarId, fillCalendarSelect, onlyChosen } from "../core/calendars.js";
 import { addDays } from "../core/dates.js";
 import { t } from "../core/i18n.js";
 import { el, hideStatus, showStatus, twoClickButton } from "../core/ui.js";
@@ -34,12 +34,12 @@ async function refresh(container, { focus = null, message = null } = {}) {
   try {
     // Next week's list too, only to know whether there's anything to bring back.
     const [items, next] = await Promise.all([
-      api(`/api/todos?week=${panel.monday}${calendarQuery()}`),
-      api(`/api/todos?week=${addDays(panel.monday, 7)}${calendarQuery()}`),
+      getOnce(`/api/todos?week=${panel.monday}`),
+      getOnce(`/api/todos?week=${addDays(panel.monday, 7)}`),
     ]);
     if (request !== panel.request) return;
-    panel.items = items;
-    panel.nextCount = next.filter((item) => !item.done).length;
+    panel.items = onlyChosen(items);
+    panel.nextCount = onlyChosen(next).filter((item) => !item.done).length;
     render(container, { focus, message });
   } catch (err) {
     if (request !== panel.request) return;
