@@ -143,6 +143,10 @@ export const FR = {
   "This calendar still has events or to-dos.": "Ce calendrier a encore des événements ou des tâches.",
   "Give the calendar a name.": "Donnez un nom au calendrier.",
   "A week is given by its Monday.": "Une semaine se donne par son lundi.",
+  "An item is listed twice.": "Un élément est en double.",
+  "These items aren't all on that week's list.": "Ces éléments ne sont pas tous sur la liste de cette semaine.",
+  "Drag to move: {text}. Or use the up and down arrow keys.":
+    "Glisser pour déplacer : {text}. Ou utilisez les flèches haut et bas.",
   "Give a week, or from and to.": "Donnez une semaine, ou un début et une fin.",
   "Write what there is to do.": "Écrivez ce qu'il y a à faire.",
   "To-do not found.": "Tâche introuvable.",

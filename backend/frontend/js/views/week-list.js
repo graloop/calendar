@@ -3,7 +3,9 @@
 // Each item has a box to tick, its text in a field to reword it, and a delete
 // that takes two clicks. In "All", each item says its calendar and the add form
 // asks which calendar a new one goes on. Under the list: move what's left to
-// next week, or bring next week's unfinished items to this one.
+// next week, or bring next week's unfinished items to this one. Done items sit
+// at the bottom (the server sorts them there). The dots at the start of a row
+// drag it up or down, with a mouse, a finger or the arrow keys.
 
 import { api, json } from "../core/api.js";
 import { calendarQuery, chosenCalendar, defaultCalendarId, fillCalendarSelect } from "../core/calendars.js";
@@ -57,7 +59,100 @@ async function send(container, path, options, redraw = {}) {
   }
 }
 
+// The six dots at the start of a row: a grip to drag it.
+function gripIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 10 16");
+  svg.setAttribute("aria-hidden", "true");
+  for (const [x, y] of [
+    [2, 3],
+    [8, 3],
+    [2, 8],
+    [8, 8],
+    [2, 13],
+    [8, 13],
+  ]) {
+    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("cx", x);
+    dot.setAttribute("cy", y);
+    dot.setAttribute("r", "1.5");
+    dot.setAttribute("fill", "currentColor");
+    svg.append(dot);
+  }
+  return svg;
+}
+
+// Rows can only move among rows like them: done ones stay at the bottom.
+function sameGroup(a, b) {
+  return a && b && a.classList.contains("is-done") === b.classList.contains("is-done");
+}
+
+// Sends the order the rows are in now, if it changed, then redraws.
+function saveOrder(container, focus) {
+  const panel = panelFor(container);
+  const ids = [...container.querySelectorAll(".week-item")].map((row) => Number(row.dataset.id));
+  if (ids.join() === panel.items.map((item) => item.id).join()) return;
+  send(container, "/api/todos/order", json("PUT", { week: panel.monday, ids }), { focus });
+}
+
+// Pointer events rather than the browser's drag and drop, which doesn't work on a phone:
+// the row follows the finger, swapping places with a neighbour when it passes its middle.
+function makeDraggable(container, row, grip) {
+  grip.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    row.classList.add("dragging");
+    // Listened to on the whole page: moving the row in the list makes the browser
+    // forget which element had the pointer, so the grip alone would stop hearing it.
+    const move = (e) => {
+      if (e.pointerId !== id) return;
+      // A fast move can pass several rows at once: keep swapping while it's past them.
+      let prev, next;
+      while (sameGroup(row, (prev = row.previousElementSibling)) && e.clientY < middle(prev)) prev.before(row);
+      while (sameGroup(row, (next = row.nextElementSibling)) && e.clientY > middle(next)) next.after(row);
+    };
+    const end = (e) => {
+      if (e.pointerId !== id) return;
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", end);
+      document.removeEventListener("pointercancel", end);
+      row.classList.remove("dragging");
+      saveOrder(container, grip.dataset.focus);
+    };
+    const id = e.pointerId;
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", end);
+    document.addEventListener("pointercancel", end);
+  });
+  // The keyboard (and the Claude extension): up and down arrows move the row one place.
+  grip.addEventListener("keydown", (e) => {
+    const prev = row.previousElementSibling;
+    const next = row.nextElementSibling;
+    if (e.key === "ArrowUp" && sameGroup(row, prev)) prev.before(row);
+    else if (e.key === "ArrowDown" && sameGroup(row, next)) next.after(row);
+    else return;
+    e.preventDefault();
+    grip.focus();
+    saveOrder(container, grip.dataset.focus);
+  });
+}
+
+function middle(element) {
+  const box = element.getBoundingClientRect();
+  return box.top + box.height / 2;
+}
+
 function itemRow(container, item, showCalendar) {
+  const grip = el(
+    "button",
+    {
+      type: "button",
+      class: "week-item-grip",
+      "aria-label": t("Drag to move: {text}. Or use the up and down arrow keys.", { text: item.text }),
+      "data-focus": `grip-${item.id}`,
+    },
+    gripIcon(),
+  );
   const box = el("input", {
     type: "checkbox",
     "aria-label": t("Done: {text}", { text: item.text }),
@@ -84,6 +179,10 @@ function itemRow(container, item, showCalendar) {
       text.value = saved.text;
       text.setAttribute("aria-label", t("To-do: {text}", { text: saved.text }));
       box.setAttribute("aria-label", t("Done: {text}", { text: saved.text }));
+      grip.setAttribute(
+        "aria-label",
+        t("Drag to move: {text}. Or use the up and down arrow keys.", { text: saved.text }),
+      );
       hideStatus(status);
     } catch (err) {
       text.value = item.text;
@@ -99,14 +198,17 @@ function itemRow(container, item, showCalendar) {
   });
   remove.setAttribute("aria-label", t("Delete: {text}", { text: item.text }));
 
-  return el(
+  const row = el(
     "li",
-    { class: `week-item${item.done ? " is-done" : ""}` },
+    { class: `week-item${item.done ? " is-done" : ""}`, "data-id": item.id },
+    grip,
     el("label", { class: "week-item-check" }, box),
     text,
     showCalendar ? el("span", { class: "cal-tag" }, item.calendar_name) : null,
     remove,
   );
+  makeDraggable(container, row, grip);
+  return row;
 }
 
 function addForm(container, showCalendar) {

@@ -119,3 +119,35 @@ def test_list_a_range_of_weeks(client):
     assert texts(client, f"from={NEXT_MONDAY}&to={NEXT_MONDAY}") == ["Next"]
     assert client.get(f"/api/todos?from={MONDAY}").status_code == 422
     assert client.get(f"/api/todos?from={MONDAY}&to=2026-12-01").status_code == 422
+
+
+def test_done_items_go_to_the_bottom(client):
+    first = add_todo(client, text="First")
+    add_todo(client, text="Second")
+    client.patch(f"/api/todos/{first['id']}", json={"done": True})
+    assert texts(client, f"week={MONDAY}") == ["Second", "First"]
+    client.patch(f"/api/todos/{first['id']}", json={"done": False})
+    assert texts(client, f"week={MONDAY}") == ["First", "Second"]  # back in its place
+
+
+def test_reorder_after_a_drag(client):
+    a, b, c = (add_todo(client, text=t)["id"] for t in "ABC")
+    response = client.put("/api/todos/order", json={"week": MONDAY, "ids": [c, a, b]})
+    assert [t["text"] for t in response.json()] == ["C", "A", "B"]
+    assert texts(client, f"week={MONDAY}") == ["C", "A", "B"]
+
+
+def test_reorder_one_calendar_keeps_the_others_in_place(client):
+    a = add_todo(client, text="School A")["id"]
+    add_todo(client, text="Work", calendar="Work")
+    b = add_todo(client, text="School B")["id"]
+    client.put("/api/todos/order", json={"week": MONDAY, "ids": [b, a]})
+    assert texts(client, f"week={MONDAY}") == ["School B", "Work", "School A"]
+
+
+def test_reorder_refuses_items_of_another_week(client):
+    a = add_todo(client)["id"]
+    other = add_todo(client, week=NEXT_MONDAY)["id"]
+    assert client.put("/api/todos/order", json={"week": MONDAY, "ids": [a, other]}).status_code == 422
+    assert client.put("/api/todos/order", json={"week": MONDAY, "ids": [a, a]}).status_code == 422
+    assert client.put("/api/todos/order", json={"week": MONDAY, "ids": [999]}).status_code == 422

@@ -228,6 +228,15 @@ class TodoOut(BaseModel):
     updated_at: dt.datetime
 
 
+class TodoOrder(BaseModel):
+    """A week's items in the order they were dragged into."""
+
+    week: dt.date
+    ids: list[int] = Field(min_length=1, max_length=500)
+
+    _week = field_validator("week")(check_monday)
+
+
 class CarryOver(BaseModel):
     week: dt.date
     calendar_id: int | None = None  # none: every calendar

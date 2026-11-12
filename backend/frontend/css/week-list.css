@@ -8,6 +8,24 @@
 
 .week-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .week-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* The dots to drag a row; touch-action: none so dragging on a phone doesn't scroll the page. */
+.week-item-grip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  min-height: 34px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+.week-item-grip:hover { color: var(--text); background: none; }
+.week-item-grip svg { width: 10px; height: 16px; }
+.week-item.dragging { opacity: 0.6; }
+.week-item.dragging .week-item-grip { cursor: grabbing; }
 .week-item-check { flex: none; display: grid; place-items: center; width: 34px; height: 34px; margin: 0; }
 /* The text is a field, but looks like plain text until it's clicked. */
 .week-item-text { flex: 1; min-width: 0; min-height: 36px; border-color: transparent; background: none; }
@@ -29,4 +47,5 @@
   .week-add { flex-direction: column; align-items: stretch; }
   .week-add input, .week-add select { flex: none; width: 100%; }
   .week-item-delete { min-height: 40px; }
+  .week-item-grip { width: 30px; min-height: 40px; }
 }

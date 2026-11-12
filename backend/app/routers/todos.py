@@ -1,7 +1,8 @@
 # This week's list: things to get done during a week, not on a set day ("read
 # chapter 4", "book the dentist"). Each week is named by its Monday, each item
 # is on one calendar, and what's left at the end of a week can move to the next
-# (or what's planned for next week can be brought back to this one).
+# (or what's planned for next week can be brought back to this one). Done items
+# are listed after the others; the rest keep the order they were dragged into.
 
 import datetime as dt
 
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Todo
-from ..schemas import CarryOver, TodoCreate, TodoOut, TodoUpdate
+from ..schemas import CarryOver, TodoCreate, TodoOrder, TodoOut, TodoUpdate
 from . import calendars
 
 router = APIRouter(prefix="/api/todos", tags=["todos"])
@@ -48,7 +49,8 @@ def list_todos(
     query = select(Todo).where(Todo.week >= start, Todo.week <= end)
     if calendar is not None:
         query = query.where(Todo.calendar_id == calendar)
-    return db.scalars(query.order_by(Todo.week, Todo.position, Todo.id)).all()
+    # What's done sinks to the bottom, so what's left is always at the top.
+    return db.scalars(query.order_by(Todo.week, Todo.done, Todo.position, Todo.id)).all()
 
 
 @router.post("", response_model=TodoOut, status_code=status.HTTP_201_CREATED)
@@ -69,6 +71,28 @@ def update_todo(todo_id: int, body: TodoUpdate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(item)
     return item
+
+
+@router.put("/order", response_model=list[TodoOut])
+def reorder(body: TodoOrder, db: Session = Depends(get_db)):
+    """Puts these items of one week in this order (after a drag). They take the
+    places they already had between them, so the items of other calendars,
+    hidden while one calendar's tab is chosen, keep theirs."""
+    if len(set(body.ids)) != len(body.ids):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "An item is listed twice.")
+    items = {item.id: item for item in db.scalars(select(Todo).where(Todo.id.in_(body.ids)))}
+    if len(items) != len(body.ids) or any(item.week != body.week for item in items.values()):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "These items aren't all on that week's list.")
+    places = sorted((item.position, item.id) for item in items.values())
+    for item_id, (position, _) in zip(body.ids, places, strict=True):
+        items[item_id].position = position
+    # Two items could share a place (from an older database): renumber the whole week to be safe.
+    week = db.scalars(select(Todo).where(Todo.week == body.week).order_by(Todo.position, Todo.id)).all()
+    if len({item.position for item in week}) != len(week):
+        for i, item in enumerate(week):
+            item.position = i
+    db.commit()
+    return list_todos(week=body.week, start=None, end=None, calendar=None, db=db)
 
 
 @router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
