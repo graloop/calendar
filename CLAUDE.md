@@ -162,6 +162,9 @@ back what it changed. The Settings screen lists past imports with the same undo.
 - `POST /api/import/apply`: saves a preview (sent back with a hash of the preview, so it
   saves exactly what I saw).
 - `GET /api/imports`, `POST /api/imports/{id}/undo`.
+- Claude's connector (`MCP_PLAN.md`, `backend/app/mcp/`), on the public hostname only: `/mcp`
+  (tools that call the same functions as these routes: the preview and apply are in
+  `importing/preview.py`), and its OAuth login under `/oauth/` and `/.well-known/`.
 
 ## Front end (one page, four tabs)
 - **Upcoming**: the next 14 days as a list, grouped by day, deadlines first with a **done**

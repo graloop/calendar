@@ -29,10 +29,11 @@ from starlette.responses import JSONResponse
 from starlette.types import Receive, Scope, Send
 
 from ..database import SessionLocal
-from ..importing.preview import build_preview
-from ..models import AppState, Calendar, Course, Event, ImportRun
-from ..routers import calendars, events
-from ..schemas import EVENT_TYPES, ImportRequest
+from ..importing.preview import StalePreview, apply_preview, build_preview
+from ..importing.saving import undo_import as undo_run
+from ..models import AppState, Calendar, Course, Event, ImportRun, Todo
+from ..routers import calendars, events, todos
+from ..schemas import EVENT_TYPES, EventFields, EventOut, ImportApply, ImportRequest, TodoCreate, TodoUpdate
 from . import text
 
 log = logging.getLogger("agenda.mcp")
@@ -131,6 +132,35 @@ def _events(db: Session, start: dt.date, end: dt.date, **filters) -> list[Event]
     """The page's own query (routers/events.py), every filter given explicitly."""
     query = {"course": None, "calendar": None, "type": None, "q": None, "done": None} | filters
     return events.list_events(from_=start, to=end, db=db, **query)
+
+
+def _monday(week: str | None) -> dt.date:
+    """The week's Monday: any day of that week (default this week) gives its Monday."""
+    day = _date(week, "week") if week else today()
+    return day - dt.timedelta(days=day.weekday())
+
+
+def _todo_line(item: Todo) -> str:
+    return f"#{item.id} · [{'x' if item.done else ' '}] {item.text} · calendar {item.calendar_name}"
+
+
+# What update_event reports, in this order, as "old → new".
+_SHOWN_FIELDS = (
+    "title",
+    "type",
+    "course_code",
+    "date",
+    "start_time",
+    "end_time",
+    "location",
+    "details",
+    "calendar_name",
+)
+
+
+def _fields(item: Event) -> dict:
+    out = EventOut.model_validate(item).model_dump(mode="json")
+    return {name: out[name] for name in _SHOWN_FIELDS}
 
 
 def _lines(items: list[Event]) -> str:
@@ -310,6 +340,188 @@ def build_server() -> FastMCP:
                 saved.value = state
             db.commit()
             return text.preview_text(out, preview_id)
+
+        return await _run(work)
+
+    @server.tool(annotations=WRITE)
+    async def apply_import(preview_id: str) -> str:
+        """Save the latest preview_import, exactly as it was shown: adds its NEW rows and updates its CHANGED
+        ones, as one import that undo_import can take back. Call it only after the user said yes to that
+        preview. Refused if the calendar changed since: preview again and show the user."""
+
+        def work(db: Session) -> str:
+            saved = db.get(AppState, PREVIEW_KEY)
+            state = saved.value if saved else None
+            if not state:
+                raise ToolProblem("No preview to apply. Call preview_import first and show the user the result.")
+            if state["id"] != preview_id.strip():
+                raise ToolProblem(
+                    f"{preview_id} isn't the latest preview ({state['id']} is). "
+                    "Apply that one if it's what the user saw, or preview again."
+                )
+            body = ImportApply(
+                text=state["text"], source=state["source"], calendar_id=state["calendar_id"], hash=state["hash"]
+            )
+            try:
+                result = apply_preview(db, body, today())
+            except StalePreview:
+                raise ToolProblem(
+                    "The calendar changed since the preview, preview again and show the user the new result."
+                ) from None
+            db.delete(db.get(AppState, PREVIEW_KEY))  # a preview is saved once
+            db.commit()
+            left_out = f" ({result['errors']} line(s) with an error left out)" if result["errors"] else ""
+            if result["import_id"] is None:
+                return f"Nothing to save: every line was already on the calendar{left_out}. No import was recorded."
+            return (
+                f"Saved as import #{result['import_id']}: added {result['added']}, changed {result['changed']}, "
+                f"skipped {result['skipped']}{left_out}. undo_import with import_id {result['import_id']} "
+                "takes it all back."
+            )
+
+        return await _run(work)
+
+    @server.tool(annotations=WRITE)
+    async def undo_import(import_id: int) -> str:
+        """Take back one import, like the page's Undo this import: removes the events it added and puts the
+        events it changed back as they were. list_imports shows the ids."""
+
+        def work(db: Session) -> str:
+            run = db.get(ImportRun, import_id)
+            if run is None:
+                raise ToolProblem(f"No import #{import_id}. list_imports shows them.")
+            if run.undone_at is not None:
+                raise ToolProblem(f"Import #{import_id} was already undone on {run.undone_at:%Y-%m-%d %H:%M}.")
+            removed, restored = undo_run(db, run)
+            db.commit()
+            return f"Import #{import_id} undone: removed {removed} event(s), put back {restored} as they were."
+
+        return await _run(work)
+
+    # --- Small direct changes ---
+
+    @server.tool(annotations=CHANGE)
+    async def set_done(event_id: int, done: bool = True) -> str:
+        """Tick a deadline done (done=true) or not done (done=false)."""
+
+        def work(db: Session) -> str:
+            item = _event(db, event_id)
+            if item.type != "deadline":
+                raise ToolProblem(f"#{event_id} is a {item.type}: only deadlines are ticked done.")
+            item.done = done
+            db.commit()
+            return text.event_line(item)
+
+        return await _run(work)
+
+    @server.tool(annotations=WRITE)
+    async def update_event(
+        event_id: int,
+        title: str | None = None,
+        type: str | None = None,
+        course: str | None = None,
+        date: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        location: str | None = None,
+        details: str | None = None,
+        calendar: str | None = None,
+    ) -> str:
+        """Change one event by hand: give only the fields to change. Dates YYYY-MM-DD, times HH:MM.
+        An empty string clears a field (course, times, location, details); no start time means all day.
+        For a batch of events from Moodle or an email, use preview_import instead. Answers old → new."""
+
+        def work(db: Session) -> str:
+            item = _event(db, event_id)
+            given = {
+                "title": title,
+                "type": type,
+                "course": course,
+                "date": date,
+                "start_time": start_time,
+                "end_time": end_time,
+                "location": location,
+                "details": details,
+            }
+            sent = {name: value for name, value in given.items() if value is not None}
+            if calendar is not None:
+                chosen = _calendar(db, calendar)
+                if chosen is None:
+                    raise ToolProblem("calendar can't be empty: give a name or id from list_calendars.")
+                sent["calendar_id"] = chosen.id
+            if not sent:
+                raise ToolProblem("Nothing to change: give at least one field.")
+            before = _fields(item)
+            events._apply(db, item, EventFields(**sent))  # the page's own rules (an end after the start...)
+            db.commit()
+            db.refresh(item)
+            after = _fields(item)
+            changes = [
+                f"{name} {before[name] or '-'} → {after[name] or '-'}"
+                for name in _SHOWN_FIELDS
+                if before[name] != after[name]
+            ]
+            if not changes:
+                return f"Nothing changed: #{event_id} already had those values.\n{text.event_line(item)}"
+            return f"#{event_id} changed: " + "; ".join(changes) + f"\n{text.event_line(item)}"
+
+        return await _run(work)
+
+    @server.tool(annotations=WRITE)
+    async def delete_event(event_id: int, series: bool = False) -> str:
+        """Delete one event. series=true deletes every event of its weekly series (a class every week)."""
+
+        def work(db: Session) -> str:
+            item = _event(db, event_id)
+            line = text.event_line(item)
+            if series and item.series_id:
+                group = list(db.scalars(select(Event).where(Event.series_id == item.series_id)).unique())
+                for other in group:
+                    db.delete(other)
+                db.commit()
+                return f"Deleted the whole series: {len(group)} events like {line}"
+            db.delete(item)
+            db.commit()
+            note = " It was one week of a series; the other weeks are still there." if item.series_id else ""
+            return f"Deleted {line}.{note}"
+
+        return await _run(work)
+
+    # --- The weekly to-do lists ---
+
+    @server.tool(annotations=READ)
+    async def list_todos(week: str | None = None) -> str:
+        """One week's to-do list (things to do that week, not on a set day). week: any day of that week,
+        YYYY-MM-DD; default this week. Not done first."""
+
+        def work(db: Session) -> str:
+            monday = _monday(week)
+            items = todos.list_todos(week=monday, start=None, end=None, calendar=None, db=db)
+            head = f"TO DO, week of {text.day(monday)}"
+            return "\n".join([head, *map(_todo_line, items)]) if items else f"{head}: nothing on the list."
+
+        return await _run(work)
+
+    @server.tool(annotations=CHANGE)
+    async def add_todo(todo: str, week: str | None = None, calendar: str | None = None) -> str:
+        """Add one item (todo: what there is to do) to a week's to-do list. week: any day of that week (default this week).
+        calendar: a name or id from list_calendars (default the first)."""
+
+        def work(db: Session) -> str:
+            chosen = _calendar(db, calendar) or calendars.first_calendar(db)
+            item = todos.create_todo(TodoCreate(week=_monday(week), calendar_id=chosen.id, text=todo), db)
+            return f"Added to the week of {text.day(item.week)}: {_todo_line(item)}"
+
+        return await _run(work)
+
+    @server.tool(annotations=CHANGE)
+    async def set_todo_done(todo_id: int, done: bool = True) -> str:
+        """Tick a to-do item done (done=true) or not done (done=false). list_todos shows the ids."""
+
+        def work(db: Session) -> str:
+            if db.get(Todo, todo_id) is None:
+                raise ToolProblem(f"No to-do #{todo_id}. list_todos shows them.")
+            return _todo_line(todos.update_todo(todo_id, TodoUpdate(done=done), db))
 
         return await _run(work)
 

@@ -113,3 +113,40 @@ Port 8030 should only be reachable from the home network and the tailnet:
   actually keeps the internet out.
 - **Check from outside**: on the phone, with Wi-Fi **and** Tailscale off (mobile data only), the
   address must **not** open.
+
+## Claude's connector: what is public and why
+
+With `MCP_ENABLED=true` (see [server.md](server.md#6-claudes-connector-optional)), one thing is
+reachable from the internet: the host name `agenda-mcp.graloop.com`, through the Cloudflare
+tunnel. It has to be: claude.ai calls it from Anthropic's servers, not from the home network.
+
+**What it answers**, and nothing else:
+- `/mcp`: Claude's tools. Every request needs a token that only the password page hands out.
+- `/oauth/authorize`: the password page. `/oauth/token` and `/oauth/register`: the steps of the
+  login that Claude does by itself.
+- `/.well-known/oauth-*`: two short documents saying where those are.
+
+**What it never answers**: the page, `/api/*`, the styles and scripts, anything else. Those are a
+plain **Not found**. The app checks this itself, before anything else runs
+(`backend/app/mcp/guard.py`), so it holds even if the tunnel were set up wrong: a request that came
+through Cloudflare can't reach the page whatever host name it claims. On the home address it's the
+other way round: the connector's paths are the ones that answer Not found.
+
+**How it's protected**:
+- One password, stored only as a scrypt hash (`MCP_PASSWORD_HASH`). After 10 wrong passwords from
+  one address, or 30 from anywhere, logins wait 15 minutes.
+- Claude gets a token for one hour and a refresh token for `MCP_TOKEN_DAYS` (30) days, replaced
+  each time it's used. The database stores only their hashes.
+- Logins can only be sent back to claude.ai or claude.com.
+- Claude adds and changes events through a preview, and with **Needs approval** set on the saving
+  tools, nothing is saved or deleted without you pressing yes. Every import can be undone.
+- What Claude reads in an email or on Moodle is data, never instructions: the connector tells
+  Claude so, and Claude should tell you if a message asks for anything else.
+
+**Signing Claude out** (a lost phone, or you're unsure): make a new hash with
+`docker exec -it agenda python -m app.mcp.hashpw`, put it in `MCP_PASSWORD_HASH`, and redeploy.
+Every token stops working at once; connect again in claude.ai with the new password.
+
+**Turning it off**: set `MCP_ENABLED=false` (and remove `COMPOSE_PROFILES=tunnel` to stop the tunnel
+container), then redeploy. `/mcp` and the login no longer exist; the page is untouched. In
+Cloudflare you can also delete the tunnel's public hostname.

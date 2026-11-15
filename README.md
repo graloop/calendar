@@ -33,7 +33,9 @@ OAuth login, behind a password. The app refuses everything else on that hostname
 - [docs/server.md](docs/server.md): the Portainer stack, the address on the home Wi-Fi, the phone's
   home screen, updating.
 - [docs/safety.md](docs/safety.md): daily backups and restoring, reaching it away from home with
-  Tailscale.
+  Tailscale, and what Claude's connector makes public.
+- Claude's connector (optional): [docs/server.md](docs/server.md#6-claudes-connector-optional) step 6,
+  and the plan it follows, [MCP_PLAN.md](MCP_PLAN.md).
 
 ## Settings
 

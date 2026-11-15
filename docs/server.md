@@ -88,6 +88,55 @@ Android: Chrome → ⋮ → **Add to Home screen**.
 Something wrong with the new version? Set `TAG` to the previous version number in the stack's
 environment variables and update the stack again.
 
+## 6. Claude's connector (optional)
+
+This lets Claude (claude.ai on the web, the desktop app and the phone) read and fill the calendar
+through its own public host name, `agenda-mcp.graloop.com`, behind a password. The page itself
+stays home-network only. What that means for safety is in [safety.md](safety.md#claudes-connector-what-is-public-and-why).
+
+1. **Make the password's hash.** On the server, once the new image is running:
+
+   ```sh
+   docker exec -it agenda python -m app.mcp.hashpw
+   ```
+
+   Type a long password twice (at least 12 characters; nothing shows while typing). It prints
+   one line starting with `scrypt$`: that's the hash, not the password. Keep the password in your
+   password manager; you type it once in claude.ai.
+2. **Make the tunnel.** Cloudflare Zero Trust → **Networks** → **Tunnels** → **Create a tunnel**
+   → **Cloudflared**, name it `agenda`. Copy the token it shows (the long text after
+   `--token`). Don't install anything: the stack runs cloudflared.
+3. **Give it ONE public hostname.** In the tunnel → **Public Hostname** → **Add**:
+   subdomain `agenda-mcp`, domain `graloop.com`, path `^/(mcp|oauth|\.well-known)`, service
+   **HTTP** `agenda:8000`. Never add a hostname for the page itself.
+4. **Optional WAF rule** (Security → WAF → Custom rules): allow `/mcp` and `/oauth/token` only
+   from Anthropic's published IP ranges. Don't restrict `/oauth/authorize`: that's the password
+   page, and it opens on your own phone or laptop.
+5. **Stack variables in Portainer** (Stacks → `agenda` → Editor → Environment variables):
+   - `MCP_ENABLED` = `true`
+   - `MCP_HOST` = `agenda-mcp.graloop.com`
+   - `MCP_PASSWORD_HASH` = the `scrypt$...` line from step 1
+   - `CLOUDFLARE_TUNNEL_TOKEN` = the token from step 2
+   - `COMPOSE_PROFILES` = `tunnel` (starts the cloudflared container)
+
+   Then **Update the stack** with **Re-pull image and redeploy** on. In `docker logs agenda` you
+   should see `Claude's connector is on at https://agenda-mcp.graloop.com/mcp`. A setting that's
+   wrong is said there too, and only keeps the connector off.
+6. **Check what's public.** From the phone on mobile data (Wi-Fi off):
+   `https://agenda-mcp.graloop.com/` must say **Not found**, and so must `/api/events`.
+   `https://agenda-mcp.graloop.com/.well-known/oauth-authorization-server` shows a few lines of
+   text: that's the only kind of thing it answers.
+7. **Connect claude.ai.** Settings → **Connectors** → **Add custom connector** → URL
+   `https://agenda-mcp.graloop.com/mcp` → **Add**, then **Connect**. The orange Agenda page opens:
+   type the password. Back in Claude, ask "Use connection_check" or "What's due this week?".
+8. **Make Claude ask first.** In the connector's tool settings, set `apply_import`,
+   `undo_import`, `update_event` and `delete_event` to **Needs approval**. Claude then can't save
+   or delete anything without you pressing yes, whatever a message it reads says.
+
+Typical use, in a class project: "Add every deadline from the plan de cours." Claude writes import
+lines, calls `preview_import`, shows you what's new or changed, and saves with `apply_import`
+only after you say yes. Each save is an import you can undo, in Claude or in Settings on the page.
+
 ## If something doesn't work
 
 - **The page doesn't open**: is the container running in Portainer? Are you on the home Wi-Fi
