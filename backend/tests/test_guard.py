@@ -6,15 +6,23 @@ import pytest
 from app.config import Settings, get_settings
 from app.mcp.passwords import hash_password, verify_password
 
-PUBLIC = "agenda-mcp.example.com"
+from .conftest import MCP_HOST as PUBLIC
 
 
 @pytest.fixture
 def public_host():
+    assert get_settings().mcp_host == PUBLIC  # set by conftest.py
+    return PUBLIC
+
+
+@pytest.fixture
+def settings_changed():
+    """Lets a test change the settings; they're put back after it."""
     settings = get_settings()
-    settings.mcp_host = PUBLIC
-    yield PUBLIC
-    settings.mcp_host = ""
+    saved = settings.model_dump()
+    yield settings
+    for name, value in saved.items():
+        setattr(settings, name, value)
 
 
 def on(host):
@@ -44,15 +52,17 @@ def test_forwarded_host_counts_as_public(client, public_host):
     assert client.get("/api/events", headers=headers).status_code == 404
 
 
-def test_anything_through_cloudflare_counts_as_public(client):
+def test_anything_through_cloudflare_counts_as_public(client, settings_changed):
     # Even with MCP_HOST not set: a request the tunnel brought in never reaches the app.
+    settings_changed.mcp_host = ""
     for header in ["cf-ray", "cf-connecting-ip"]:
         assert client.get("/api/events", headers={"host": "agenda:8000", header: "x"}).status_code == 404
 
 
 def test_public_host_lets_the_connector_paths_through(client, public_host):
-    # Not built yet (stage 2), so the app itself answers 404 behind the guard; what
-    # matters here is that the guard lets them by. Checked on the guard's own rule:
+    assert client.get("/.well-known/oauth-authorization-server", headers=on(public_host)).status_code == 200
+    assert client.post("/mcp", headers=on(public_host), json={}).status_code == 401  # needs a token
+    # And on the guard's own rule, for every path:
     from app.mcp.guard import allowed
 
     for path in [
@@ -82,7 +92,8 @@ def test_home_address_has_no_connector(client, public_host, path):
     assert response.text == "Not found"
 
 
-def test_without_mcp_host_everything_is_home(client):
+def test_without_mcp_host_everything_is_home(client, settings_changed):
+    settings_changed.mcp_host = ""
     assert client.get("/api/events", headers=on(PUBLIC)).status_code == 200
     assert client.get("/mcp", headers=on(PUBLIC)).status_code == 404
 
@@ -100,19 +111,16 @@ def test_settings_say_what_is_missing():
     assert Settings(mcp_enabled=True, mcp_host=PUBLIC, mcp_password_hash=hash_password("x")).mcp_problem() is None
 
 
-def test_a_wrong_setting_does_not_crash_the_app(client, caplog):
-    settings = get_settings()
-    settings.mcp_enabled = True
-    try:
-        from fastapi.testclient import TestClient
+def test_a_wrong_setting_does_not_crash_the_app(settings_changed, caplog):
+    from fastapi.testclient import TestClient
 
-        from app.main import app
+    from app.main import app
 
-        with TestClient(app) as again:
-            assert again.get("/api/health").status_code == 200
-        assert "MCP_HOST and MCP_PASSWORD_HASH is empty" in caplog.text
-    finally:
-        settings.mcp_enabled = False
+    settings_changed.mcp_host = ""
+    settings_changed.mcp_password_hash = ""
+    with TestClient(app) as again:
+        assert again.get("/api/health").status_code == 200
+    assert "MCP_HOST and MCP_PASSWORD_HASH is empty" in caplog.text
 
 
 def test_password_hash_round_trip():

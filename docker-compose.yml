@@ -3,8 +3,9 @@
 # router and never point a public tunnel at the page. Away from home, use
 # Tailscale (docs/safety.md). The one exception is Claude's connector: a public
 # hostname (MCP_HOST) that reaches only /mcp and its OAuth login, behind a
-# password; the app answers a 404 to anything else on it (app/mcp/guard.py). Everything worth keeping is in the agenda_data volume:
-# updating the app doesn't touch it.
+# password; the app answers a 404 to anything else on it (app/mcp/guard.py).
+# Everything worth keeping is in the agenda_data volume: updating the app
+# doesn't touch it.
 services:
   agenda:
     # Built by GitHub Actions (.github/workflows/ci.yml) on every push to main
@@ -32,6 +33,21 @@ services:
       - "8030:8000"
     volumes:
       - agenda_data:/data
+
+  # The tunnel for Claude's connector, the same as the training app's. Off unless
+  # the stack has COMPOSE_PROFILES=tunnel. CLOUDFLARE_TUNNEL_TOKEN is the token
+  # Cloudflare shows when you create the tunnel. In Cloudflare, give it ONE
+  # public hostname (MCP_HOST), path ^/(mcp|oauth|\.well-known), service
+  # http://agenda:8000. Never a hostname for the page (docs/server.md).
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.3
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      - agenda
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
 
 volumes:
   agenda_data:

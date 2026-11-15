@@ -140,3 +140,51 @@ class ImportChange(Base):
     import_id: Mapped[int] = mapped_column(ForeignKey("imports.id"), index=True)
     event_id: Mapped[int] = mapped_column(Integer)
     before: Mapped[dict] = mapped_column(JSON)
+
+
+# --- Claude's connector (app/mcp/) ---
+# No accounts: every token belongs to the owner. Codes and tokens are stored as
+# SHA-256 hashes only, so a copy of the database can't be used to connect.
+
+
+class McpClient(Base):
+    """A Claude app (web, desktop, phone) that registered itself as a connector."""
+
+    __tablename__ = "mcp_clients"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    redirect_uris: Mapped[list] = mapped_column(JSON)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=_now)
+
+
+class McpAuthCode(Base):
+    """The code a successful login hands to Claude, traded once for tokens within minutes."""
+
+    __tablename__ = "mcp_auth_codes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    client_id: Mapped[str] = mapped_column(String(64))
+    redirect_uri: Mapped[str] = mapped_column(String(255))
+    code_challenge: Mapped[str] = mapped_column(String(128))  # PKCE, S256
+    password_mark: Mapped[str] = mapped_column(String(16))  # see McpToken
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime)
+    used_at: Mapped[dt.datetime | None] = mapped_column(DateTime)
+
+
+class McpToken(Base):
+    """An access token (sent with every /mcp request, 1 hour) or the refresh
+    token that gets the next one (MCP_TOKEN_DAYS, replaced at each use)."""
+
+    __tablename__ = "mcp_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # access | refresh
+    client_id: Mapped[str] = mapped_column(String(64))
+    # A short fingerprint of MCP_PASSWORD_HASH when the token was made: a new
+    # password gives a new fingerprint, and every older token stops working.
+    password_mark: Mapped[str] = mapped_column(String(16))
+    expires_at: Mapped[dt.datetime] = mapped_column(DateTime)
+    revoked_at: Mapped[dt.datetime | None] = mapped_column(DateTime)

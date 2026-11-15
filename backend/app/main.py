@@ -1,6 +1,8 @@
 # The FastAPI app: creates the tables at startup, plugs in the API routes and
 # serves the front end. Every page address (/upcoming, /week/..., /event/5...)
 # answers with the same index.html; js/main.js then shows the right screen.
+# With MCP_ENABLED, also Claude's connector: /mcp and its OAuth login (app/mcp/),
+# reachable only through the public hostname (the guard, app/mcp/guard.py).
 
 import logging
 import os
@@ -10,10 +12,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import Route
 
 from .config import get_settings
 from .database import Base, add_missing_columns, engine
+from .mcp import auth as mcp_auth
+from .mcp import oauth as mcp_oauth
 from .mcp.guard import PublicHostGuard
+from .mcp.server import McpApp
 from .routers import calendars, courses, events, imports, todos
 from .version import VERSION
 
@@ -31,9 +37,15 @@ async def lifespan(_app: FastAPI):
     # The connector: a wrong setting is said clearly in the logs, and only turns it off.
     if problem := settings.mcp_problem():
         log.error(problem)
-    elif settings.mcp_enabled:
-        log.warning("MCP_ENABLED is true, but the connector isn't built yet (stage 2): nothing is mounted.")
-    yield
+    if mcp_auth.is_configured():
+        log.info("Claude's connector is on at %s/mcp", mcp_auth.public_base())
+        async with mcp_app.running():
+            yield
+    else:
+        yield
+
+
+mcp_app = McpApp()  # Claude's connector; only reachable when mounted further down
 
 
 app = FastAPI(
@@ -54,6 +66,14 @@ app.include_router(todos.router)
 
 
 app.include_router(imports.router)
+
+# Claude's connector, only with MCP_ENABLED and its settings right. Two plain
+# routes rather than a mount, so /mcp answers without a redirect to /mcp/.
+if mcp_auth.is_configured():
+    app.include_router(mcp_oauth.router)
+    _mcp_endpoint = mcp_auth.BearerAuth(mcp_app)
+    app.router.routes.append(Route("/mcp", endpoint=_mcp_endpoint))
+    app.router.routes.append(Route("/mcp/", endpoint=_mcp_endpoint))
 
 
 @app.get("/api/health")
