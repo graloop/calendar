@@ -13,10 +13,12 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .database import Base, add_missing_columns, engine
+from .mcp.guard import PublicHostGuard
 from .routers import calendars, courses, events, imports, todos
 from .version import VERSION
 
 logging.basicConfig(level=logging.INFO)  # What the app says goes to `docker logs`.
+log = logging.getLogger("agenda")
 settings = get_settings()
 
 
@@ -26,6 +28,11 @@ async def lifespan(_app: FastAPI):
     Base.metadata.create_all(bind=engine)
     add_missing_columns()
     calendars.set_up_calendars()  # School, Personal, Work on a new database
+    # The connector: a wrong setting is said clearly in the logs, and only turns it off.
+    if problem := settings.mcp_problem():
+        log.error(problem)
+    elif settings.mcp_enabled:
+        log.warning("MCP_ENABLED is true, but the connector isn't built yet (stage 2): nothing is mounted.")
     yield
 
 
@@ -36,6 +43,9 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/openapi.json" if settings.enable_api_docs else None,
 )
+
+# First of all, before any route: the public hostname reaches only the connector.
+app.add_middleware(PublicHostGuard)
 
 app.include_router(courses.router)
 app.include_router(events.router)

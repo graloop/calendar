@@ -1,7 +1,9 @@
 # Agenda on the home server, as a Portainer stack (see docs/server.md).
-# Home network only: there are no logins, so never forward port 8030 on the
-# router and never put it behind a public tunnel. Away from home, use Tailscale
-# (docs/safety.md). Everything worth keeping is in the agenda_data volume:
+# Home network only: the page has no login, so never forward port 8030 on the
+# router and never point a public tunnel at the page. Away from home, use
+# Tailscale (docs/safety.md). The one exception is Claude's connector: a public
+# hostname (MCP_HOST) that reaches only /mcp and its OAuth login, behind a
+# password; the app answers a 404 to anything else on it (app/mcp/guard.py). Everything worth keeping is in the agenda_data volume:
 # updating the app doesn't touch it.
 services:
   agenda:
@@ -18,6 +20,14 @@ services:
       TZ: ${TZ:-America/Toronto}
       # No Swagger page at /docs on the server.
       ENABLE_API_DOCS: "false"
+      # Claude's connector (MCP_PLAN.md). Off unless set to true in the stack.
+      MCP_ENABLED: ${MCP_ENABLED:-false}
+      # The public hostname, e.g. agenda-mcp.graloop.com. On it the app answers
+      # only /mcp and its OAuth login; everything else is a 404.
+      MCP_HOST: ${MCP_HOST:-}
+      # From `docker exec -it agenda python -m app.mcp.hashpw`: the hash, never the password.
+      MCP_PASSWORD_HASH: ${MCP_PASSWORD_HASH:-}
+      MCP_TOKEN_DAYS: ${MCP_TOKEN_DAYS:-30}
     ports:
       - "8030:8000"
     volumes:

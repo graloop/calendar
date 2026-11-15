@@ -3,3 +3,6 @@ uvicorn[standard]>=0.30.0,<1.0.0
 sqlalchemy>=2.0.30,<2.1.0
 pydantic>=2.8.0,<3.0.0
 pydantic-settings>=2.4.0,<3.0.0
+# Claude's connector (app/mcp/), the same range as the training app. 1.x on
+# purpose: 2.x changes the server API.
+mcp>=1.30.0,<2.0.0

@@ -1,7 +1,8 @@
 # Keeping Agenda safe
 
 Two things: a daily backup of the calendar, and reaching it away from home without putting it on
-the internet.
+the internet. (Claude's connector is the one exception: a separate public host name that reaches
+only `/mcp` and its OAuth login, behind a password, and nothing else. See `MCP_PLAN.md`.)
 
 ## Backups
 
@@ -90,9 +91,10 @@ sudo tailscale serve --bg 8030
 
 ### Never `tailscale funnel`
 
-`tailscale funnel` puts the app **on the public internet** for anyone with the address. Agenda
-has no logins, so that would hand the calendar to anyone. Never use it, just like port forwarding
-or a Cloudflare tunnel.
+`tailscale funnel` puts the app **on the public internet** for anyone with the address. The page
+has no login, so that would hand the calendar to anyone. Never use it, just like port forwarding
+or a Cloudflare tunnel pointed at the page. (The connector's tunnel is different: it only carries
+its own host name, and the app refuses everything but `/mcp` and its login on it.)
 
 ## The firewall
 

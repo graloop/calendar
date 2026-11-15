@@ -3,9 +3,14 @@
 How Agenda gets from GitHub to the home server, and onto the phone. It runs as a Portainer
 stack and is only reachable on the home network.
 
-> **Home network only.** The app has no logins: anyone who can open the page can change the
-> calendar. So **never forward port 8030 on the router**, no Cloudflare tunnel, no public host
-> name. To reach it away from home, use Tailscale ([safety.md](safety.md)), nothing else.
+> **Home network only.** The page has no login: anyone who can open it can change the
+> calendar. So **never forward port 8030 on the router**, and never point a tunnel or a public
+> host name at the page. To reach it away from home, use Tailscale ([safety.md](safety.md)).
+>
+> **The one exception** is Claude's connector (`MCP_PLAN.md`): a separate public host name,
+> `MCP_HOST`, through a Cloudflare tunnel. On it the app only answers `/mcp` and its OAuth login
+> (behind a password) and a 404 to everything else, the page and `/api/*` included. It's off
+> unless `MCP_ENABLED=true`.
 
 ## How it fits together
 
