@@ -2,26 +2,20 @@
 # apply (saves exactly what the preview showed), and the list of past imports
 # with their undo.
 #
-# Why a hash: the page sends back the hash of the preview it showed. Apply
-# makes the preview again from the same text and refuses if anything differs
-# (the calendar changed, or it's another day), so nothing is ever saved that
-# wasn't seen first.
+# The preview and apply themselves are in importing/preview.py, shared with
+# Claude's connector (mcp/server.py); see there why apply checks a hash.
 
 import datetime as dt
-import hashlib
-import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..importing.matching import PreviewRow, classify, counts
-from ..importing.parser import guess_source_kind, parse_text
-from ..importing.saving import save_import, undo_import
+from ..importing.preview import StalePreview, apply_preview, build_preview
+from ..importing.saving import undo_import
 from ..models import AppState, ImportRun
 from ..schemas import ImportApply, ImportDraft, ImportOut, ImportRequest
-from . import calendars
 
 router = APIRouter(prefix="/api", tags=["import"])
 
@@ -53,60 +47,21 @@ def put_draft(body: ImportDraft, db: Session = Depends(get_db)):
     return body
 
 
-# --- Preview and apply ---
-
-
-def _source(requested: str, rows: list[PreviewRow]) -> str:
-    """The import's source: as chosen, or (auto) what every line's source column
-    points to. Lines from several kinds, or none: other."""
-    if requested != "auto":
-        return requested
-    kinds = {guess_source_kind(r.event.source_link) for r in rows if r.event and r.event.source_link}
-    return kinds.pop() if len(kinds) == 1 else "other"
-
-
-def _preview(db: Session, body: ImportRequest) -> tuple[list[PreviewRow], dict]:
-    parsed = parse_text(body.text, today())
-    rows = classify(db, parsed.items)
-    source = _source(body.source, rows)
-    # Part of what the preview shows (and of its hash): new events go in this calendar.
-    calendar = calendars.get_or_422(db, body.calendar_id) if body.calendar_id else calendars.first_calendar(db)
-    out = {
-        "calendar_id": calendar.id,
-        "calendar_name": calendar.name,
-        "rows": [r.to_json() for r in rows],
-        "counts": counts(rows),
-        "source": source,
-        "line_count": parsed.line_count,
-    }
-    digest = json.dumps(out, sort_keys=True, ensure_ascii=False).encode()
-    out["hash"] = hashlib.sha256(digest).hexdigest()
-    return rows, out
+# --- Preview and apply (the work is in importing/preview.py, shared with the connector) ---
 
 
 @router.post("/import/preview")
 def preview(body: ImportRequest, db: Session = Depends(get_db)):
     """{rows, counts, source, line_count, hash}. Saves nothing, not even a new course."""
-    return _preview(db, body)[1]
+    return build_preview(db, body, today())[1]
 
 
 def apply_import(db: Session, body: ImportApply, extra_fields: dict | None = None) -> dict:
-    """Saves the previewed rows if the preview is still the same. `extra_fields`
-    go on every new event (e.g. a calendar chosen on the page)."""
-    rows, out = _preview(db, body)
-    if out["hash"] != body.hash:
-        raise HTTPException(status.HTTP_409_CONFLICT, "The calendar changed since the preview. Press Preview again.")
-    fields = {"calendar_id": out["calendar_id"], **(extra_fields or {})}
-    run = save_import(db, rows, out["source"], out["line_count"], fields)
-    db.commit()
-    c = out["counts"]
-    return {
-        "import_id": run.id if run else None,
-        "added": c["new"],
-        "changed": c["changed"],
-        "skipped": c["already"],
-        "errors": c["error"],
-    }
+    """Saves the previewed rows if the preview is still the same (409 otherwise)."""
+    try:
+        return apply_preview(db, body, today(), extra_fields)
+    except StalePreview as stale:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(stale)) from None
 
 
 @router.post("/import/apply")
