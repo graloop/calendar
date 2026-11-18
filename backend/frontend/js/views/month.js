@@ -61,7 +61,7 @@ export async function showMonth(month) {
   cells.push(el("div", { class: "grid-head", "aria-hidden": "true" }, t("To do")));
   for (let iso = start; iso <= end; iso = addDays(iso, 1)) {
     const extraClass = monthOf(iso) === month ? "" : "other-month";
-    cells.push(dayCell(iso, days[iso] ?? [], { today, extraClass }));
+    cells.push(dayCell(iso, days[iso] ?? [], { today, extraClass, status }));
     const monday = mondayOf(iso);
     if (iso === addDays(monday, 6)) {
       // A Sunday: the week's to-do box closes the row.

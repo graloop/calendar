@@ -69,6 +69,23 @@
 .event-link.compact .type-badge { padding: 0; border: none; background: none; }
 .event-link.compact .type-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
+/* A deadline in the grids: its box to tick it done sits in the link's
+   bottom-right corner, and the link leaves room for it. */
+.grid-event { position: relative; display: flex; min-width: 0; }
+.grid-event .event-link.compact { padding-right: 24px; }
+.grid-done {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}
+.grid-done input { width: 14px; height: 14px; min-height: 0; margin: 0; cursor: pointer; }
+
 /* --- Upcoming: one group per day --- */
 .day-list { display: flex; flex-direction: column; gap: 20px; }
 .day-group h3 { margin: 0 0 8px; font-size: 0.95rem; }
@@ -177,6 +194,10 @@
   .day-cell, .month-grid .day-cell { min-height: 0; padding-right: 40px; padding-bottom: 8px; }
   .add-btn { top: 6px; bottom: auto; width: 30px; height: 30px; opacity: 0.8; }
   .event-link.compact { font-size: 0.85rem; padding: 6px 8px; }
+  .grid-event .event-link.compact { padding-right: 40px; }
+  /* A bigger box for a finger. */
+  .grid-done { right: 6px; bottom: 50%; transform: translateY(50%); width: 32px; height: 32px; }
+  .grid-done input { width: 20px; height: 20px; }
   .period-nav { flex-direction: column; align-items: stretch; }
   .period-buttons .btn { flex: 1; }
 }

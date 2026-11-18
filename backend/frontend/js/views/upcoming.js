@@ -2,10 +2,10 @@
 // "done" box, then the deadlines that slipped by without being ticked.
 // The screen to open on the phone. This week's list sits above the days.
 
-import { api, getOnce, json } from "../core/api.js";
+import { getOnce } from "../core/api.js";
 import { onlyChosen } from "../core/calendars.js";
 import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
-import { byDay, eventLink, sortDay } from "../core/events.js";
+import { byDay, doneCheckbox, eventLink, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
 import { screenNumber } from "../core/router.js";
 import { el, hideStatus, showStatus, showView } from "../core/ui.js";
@@ -24,21 +24,7 @@ function dayHeading(iso, today) {
 // A deadline gets a box to tick; other events a blank of the same width, so titles line up.
 function doneBox(event, link) {
   if (event.type !== "deadline") return el("span", { class: "done-check", "aria-hidden": "true" });
-  const box = el("input", {
-    type: "checkbox",
-    "aria-label": t("Done: {title}", { title: event.title }),
-  });
-  box.checked = event.done;
-  box.addEventListener("change", async () => {
-    try {
-      await api(`/api/events/${event.id}`, json("PATCH", { done: box.checked }));
-      link.classList.toggle("is-done", box.checked);
-    } catch (err) {
-      box.checked = !box.checked;
-      showStatus(status, err.message, true);
-    }
-  });
-  return el("label", { class: "done-check" }, box);
+  return el("label", { class: "done-check" }, doneCheckbox(event, link, status));
 }
 
 function group(heading, events, { showDate = false, className = "day-group" } = {}) {

@@ -5,7 +5,7 @@
 import { getOnce } from "../core/api.js";
 import { onlyChosen } from "../core/calendars.js";
 import { addDays, formatDay, mondayOf, todayISO } from "../core/dates.js";
-import { addButton, byDay, eventLink, sortDay } from "../core/events.js";
+import { addButton, byDay, gridEvent, sortDay } from "../core/events.js";
 import { t } from "../core/i18n.js";
 import { screenNumber } from "../core/router.js";
 import { el, hideStatus, showStatus, showView } from "../core/ui.js";
@@ -14,14 +14,15 @@ import { showWeekList } from "./week-list.js";
 const grid = document.getElementById("week-grid");
 const status = document.getElementById("week-status");
 
-// One day's box: its date, its events, and the "+". Also used by the month grid.
-export function dayCell(iso, events, { today, extraClass = "" } = {}) {
+// One day's box: its date, its events (a deadline with its done box), and the
+// "+". Also used by the month grid; `status` is where a failed tick is said.
+export function dayCell(iso, events, { today, extraClass = "", status = null } = {}) {
   const classes = ["day-cell", extraClass, iso === today ? "today" : ""].filter(Boolean).join(" ");
   return el(
     "div",
     { class: classes },
     el("div", { class: "day-date" }, formatDay(iso)),
-    el("div", { class: "events" }, ...sortDay(events).map((event) => eventLink(event, { compact: true }))),
+    el("div", { class: "events" }, ...sortDay(events).map((event) => gridEvent(event, status))),
     addButton(iso),
   );
 }
@@ -52,6 +53,6 @@ export async function showWeek(day) {
   const days = byDay(events);
   const cells = [0, 1, 2, 3, 4, 5, 6]
     .map((i) => addDays(monday, i))
-    .map((iso) => dayCell(iso, days[iso] ?? [], { today }));
+    .map((iso) => dayCell(iso, days[iso] ?? [], { today, status }));
   grid.replaceChildren(...cells);
 }

@@ -2,12 +2,14 @@
 // whose text says everything about it (date, time, type, course, title), so the
 // Claude extension and screen readers can read it without opening it.
 // In "All" calendars, the link also says which calendar the event is on.
+// A deadline also gets a box to tick it done right there (doneCheckbox).
 
+import { api, json } from "./api.js";
 import { chosenCalendar } from "./calendars.js";
 import { formatDay, formatWhen } from "./dates.js";
 import { t } from "./i18n.js";
 import { typeBadge, typeLabel } from "./types.js";
-import { el } from "./ui.js";
+import { el, showStatus } from "./ui.js";
 
 // Deadlines first in a day (the thing to not forget), then all-day events,
 // then by start time.
@@ -51,6 +53,38 @@ export function eventLink(event, { showDate = false, compact = false } = {}) {
   );
   if (event.course_color) link.style.setProperty("--course", event.course_color);
   return link;
+}
+
+// The box that ticks a deadline done without opening it (Upcoming and the
+// Week and Month grids). The link's look follows at once; if the server
+// refuses, the box goes back and `status` says why.
+export function doneCheckbox(event, link, status) {
+  const box = el("input", { type: "checkbox", "aria-label": t("Done: {title}", { title: event.title }) });
+  box.checked = event.done;
+  box.addEventListener("change", async () => {
+    link.classList.toggle("is-done", box.checked);
+    try {
+      await api(`/api/events/${event.id}`, json("PATCH", { done: box.checked }));
+      event.done = box.checked;
+    } catch (err) {
+      box.checked = !box.checked;
+      link.classList.toggle("is-done", box.checked);
+      if (status) showStatus(status, err.message, true);
+    }
+  });
+  return box;
+}
+
+// In the grids: the event's link, and for a deadline its box in the bottom-right corner.
+export function gridEvent(event, status) {
+  const link = eventLink(event, { compact: true });
+  if (event.type !== "deadline") return link;
+  return el(
+    "div",
+    { class: "grid-event has-done" },
+    link,
+    el("label", { class: "grid-done" }, doneCheckbox(event, link, status)),
+  );
 }
 
 // The "+" in a day's corner. Its label says the day in words and as a date.
